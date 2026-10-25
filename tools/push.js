@@ -1,4 +1,9 @@
 (function(){
+  // 通知から来たら、その画面へ移る
+  var goTo=function(v){var t=0,f=function(){if(window.__khGo)window.__khGo(v);else if(++t<50)setTimeout(f,100);};f();};
+  var pending=function(){if(!window.caches)return;caches.open('kh-go').then(function(c){return c.match('go').then(function(r){if(!r)return;return r.json().then(function(j){c.delete('go');if(j&&Date.now()-j.at<120000)goTo(j.go);});});}).catch(function(){});};
+  if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.khGo!=null){if(window.caches)caches.open('kh-go').then(function(c){c.delete('go');});goTo(e.data.khGo);}});
+  pending();document.addEventListener('visibilitychange',function(){if(!document.hidden)setTimeout(pending,300);});
   if(!('Notification' in window)||!('serviceWorker' in navigator)||!window.firebase)return;
   var CFG=__FIREBASE__,VAPID='__VAPID__';
   var list=document.getElementById('pgList');if(!list)return;
