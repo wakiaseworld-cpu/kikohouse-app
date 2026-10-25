@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>キコハウス</title>
+<meta name="theme-color" content="#cfc6c3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1716" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="キコハウス">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>html,body{margin:0;background:#cfc6c3}@media (prefers-color-scheme:dark){html,body{background:#1a1716}}</style>
+</head>
+<body>
+<script>
+// 画面の中身は暗号にして置いてある。ログインした人だけが鍵をもらって開ける。
+(async function () {
+  const API = '__API_URL__';
+  const get = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+  const set = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (_) {} };
+  const tok = get('kh-token');
+  if (!tok) return location.replace('./');
+  let boot = null; try { boot = JSON.parse(get('kh-boot')); } catch (_) {}
+  const refresh = async () => {
+    const j = await (await fetch(API, { method: 'POST', body: JSON.stringify({ token: tok, fn: '__boot' }) })).json();
+    if (j.error === 'auth') { set('kh-token', null); set('kh-boot', null); location.replace('./'); return null; }
+    if (j.ok) set('kh-boot', JSON.stringify(j.v));
+    return j.v || null;
+  };
+  const open = async b => {
+    const buf = await (await fetch('app.bin', { cache: 'no-cache' })).arrayBuffer();
+    const raw = Uint8Array.from(atob(b.key), c => c.charCodeAt(0));
+    const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+    return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0, 12) }, key, buf.slice(12)));
+  };
+  let html = null;
+  try { if (boot && boot.key) html = await open(boot); } catch (_) {}
+  if (html == null) {
+    try { boot = await refresh(); if (boot && boot.key) html = await open(boot); } catch (_) {}
+  }
+  if (html == null) { if (boot !== null || navigator.onLine) document.body.textContent = '開けませんでした。少し待ってから開き直してください。'; return; }
+  document.open(); document.write(html); document.close();
+})();
+</script>
+</body>
+</html>

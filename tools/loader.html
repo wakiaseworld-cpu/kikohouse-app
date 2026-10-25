@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>キコハウス</title>
+<meta name="theme-color" content="#e3cfa0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="キコハウス">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+html,body{margin:0;height:100%;background:#e3cfa0;color:#2b2418;font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;box-sizing:border-box}
+main[hidden]{display:none}
+img{width:120px;height:120px;border-radius:26px;image-rendering:pixelated}
+a.btn,button{font:inherit;font-weight:700;font-size:18px;background:#2f6b4f;color:#fff;border:0;border-radius:12px;padding:14px 28px;text-decoration:none;cursor:pointer}
+form{display:flex;gap:8px}
+input{font:inherit;font-size:16px;width:12em;padding:8px 10px;border:1px solid #b9a06a;border-radius:8px;background:#fffaf0;color:#2b2418}
+form button{font-size:14px;padding:8px 14px;background:#5a4a30}
+</style>
+</head>
+<body>
+<main id="login" hidden>
+  <img src="apple-touch-icon.png" alt="">
+  <a class="btn" id="go">ログイン</a>
+  <form id="code"><input id="codeIn" placeholder="合言葉" autocomplete="off" aria-label="合言葉"><button>入る</button></form>
+</main>
+<script>
+const LOGIN_URL = '__LOGIN_URL__', API = '__API_URL__';
+const get = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const set = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (_) {} };
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+const m = location.hash.match(/t=([0-9a-f-]+)/i);
+if (m) { set('kh-token', m[1]); history.replaceState(null, '', location.pathname); }
+function showLogin() {
+  document.getElementById('go').href = LOGIN_URL + '?link=1';
+  document.getElementById('login').hidden = false;
+}
+async function start() {
+  const tok = get('kh-token');
+  if (!tok) return showLogin();
+  try {
+    const j = await (await fetch(API, { method: 'POST', body: JSON.stringify({ token: tok, fn: '__boot' }) })).json();
+    if (j.error === 'auth') { set('kh-token', null); set('kh-boot', null); return showLogin(); }
+    if (j.ok) set('kh-boot', JSON.stringify(j.v));
+  } catch (_) {}
+  let b = null; try { b = JSON.parse(get('kh-boot')); } catch (_) {}
+  if (b && b.plan) location.replace('app.html'); else showLogin();
+}
+document.getElementById('code').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = document.getElementById('codeIn').value.trim();
+  if (v) { set('kh-token', v); start(); }
+});
+start();
+</script>
+</body>
+</html>
