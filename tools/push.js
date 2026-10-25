@@ -24,6 +24,9 @@
     var m=firebase.messaging();
     // アプリを開いているときに届いた通知も、通知として出す
     if(!listening){listening=true;m.onMessage(function(p){var n=(p&&p.notification)||{};
+      // 相手が何かしたら、開いている画面も裏で新しくする
+      try{if(window.__khPull)window.__khPull();if(window.__khMoney)window.__khMoney();}catch(_){}
+      
       reg.showNotification(n.title||'キコハウス',{body:n.body||'',icon:'icon-192.png',data:{go:(p&&p.data&&p.data.go)||''}}).catch(function(){say((n.title||'')+' '+(n.body||''));});});}
     return m.getToken({vapidKey:VAPID,serviceWorkerRegistration:reg});});};
   var save=function(t){return window.__khApi('__push',[t]).then(function(){set('kh-push',t);label();});};
