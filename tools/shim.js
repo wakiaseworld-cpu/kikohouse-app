@@ -8,7 +8,16 @@
   // 読み込みだけは、一時的な失敗（アプリを裏にした・GASが混んでいた等）なら少し待ってやり直す
   var READ=/(^|_)get[A-Z]|^__boot$|Status$/;
   function wait(ms){return new Promise(function(res){setTimeout(function(){if(!document.hidden)return res();document.addEventListener('visibilitychange',function v(){if(!document.hidden){document.removeEventListener('visibilitychange',v);res();}});},ms);});}
-  function post(fn,args){var n=READ.test(fn)?3:0;var go=function(){return once(fn,args).catch(function(e){if(n-->0)return wait(n===2?800:2500).then(go);throw e;});};return go();}
+  function send(fn,args){var n=READ.test(fn)?3:0;var go=function(){return once(fn,args).catch(function(e){if(n-->0)return wait(n===2?800:2500).then(go);throw e;});};return go();}
+  // 保存の通信をしている間は、ボタンを押せないようにする（押しても何も起きない）。文字の入力はそのまま続けられる
+  var busy=0,dim=null,SAVE=function(fn){return !READ.test(fn)&&!/^(kikoAi|__push)/.test(fn);};
+  function hold(d){busy=Math.max(0,busy+d);var r=document.documentElement;
+    if(busy){if(!dim)dim=setTimeout(function(){r.classList.add('kh-busy');},300);}else{clearTimeout(dim);dim=null;r.classList.remove('kh-busy');}}
+  window.addEventListener('click',function(e){if(busy){e.preventDefault();e.stopImmediatePropagation();}},true);
+  try{var st=document.createElement('style');st.textContent='html.kh-busy button,html.kh-busy .pill,html.kh-busy [role=button]{opacity:.55;transition:opacity .2s}html.kh-busy body{cursor:progress}';document.head.appendChild(st);}catch(_){}
+  function post(fn,args){if(!SAVE(fn))return send(fn,args);hold(1);var done=false,end=function(){if(!done){done=true;hold(-1);}};
+    // 通信がとても長引いたときは、20秒で押せるように戻す（保存はそのまま続く）
+    var t=setTimeout(end,20000);return send(fn,args).then(function(v){clearTimeout(t);end();return v;},function(e){clearTimeout(t);end();throw e;});}
   function runner(){
     var ok=function(){},ng=function(){},p;
     p=new Proxy({},{get:function(_,k){
