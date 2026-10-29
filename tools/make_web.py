@@ -60,6 +60,7 @@ for key in ['RENT', 'GOAL']:
 (root / 'private').mkdir(exist_ok=True)
 push = (root / 'tools' / 'push.js').read_text(encoding='utf-8').replace('__FIREBASE__', json.dumps(cfg['firebase'])).replace('__VAPID__', cfg['vapid'])
 out = out.rstrip() + '\n<script>' + push + '</script>\n'
+out += '<script>' + (root / 'tools' / 'ptr.js').read_text(encoding='utf-8') + '</script>\n'
 assert '<?' not in out, 'scriptlet left'
 
 # 画面の中身は公開の場所に読める形で置かない。鍵（private/）はAPIがログインした人にだけ渡す
