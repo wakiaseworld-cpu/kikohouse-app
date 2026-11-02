@@ -11,11 +11,17 @@
   function send(fn,args){var n=READ.test(fn)?3:0;var go=function(){return once(fn,args).catch(function(e){if(n-->0)return wait(n===2?800:2500).then(go);throw e;});};return go();}
   // 保存の通信をしている間は、ボタンを押せないようにする（押しても何も起きない）。文字の入力はそのまま続けられる
   var busy=0,dim=null,SAVE=function(fn){return !READ.test(fn)&&!/^(kikoAi|__push)/.test(fn);};
-  function hold(d){busy=Math.max(0,busy+d);var r=document.documentElement;
-    if(busy){if(!dim)dim=setTimeout(function(){r.classList.add('kh-busy');},300);}else{clearTimeout(dim);dim=null;r.classList.remove('kh-busy');}}
+  // 保存している間は、キコログと同じ「保存中…」の画面を出す（終わるまで次へ進めない）
+  var veilN=0,veilEl=null;
+  function veil(d){veilN=Math.max(0,veilN+d);
+    if(!veilEl&&document.body){veilEl=document.createElement('div');veilEl.className='khveil';veilEl.hidden=true;
+      veilEl.innerHTML='<div class="khveilbox" role="status" aria-live="polite"><span class="khdots" aria-hidden="true"><i></i><i></i><i></i></span><span>保存中…</span></div>';document.body.appendChild(veilEl);}
+    if(veilEl)veilEl.hidden=!veilN;}
+  window.__khVeil=veil;
+  function hold(d){busy=Math.max(0,busy+d);}
   window.addEventListener('click',function(e){if(busy&&!(e.target&&e.target.type==='file')){e.preventDefault();e.stopImmediatePropagation();}},true);
-  try{var st=document.createElement('style');st.textContent='html.kh-busy button,html.kh-busy .pill,html.kh-busy [role=button]{opacity:.55;transition:opacity .2s}html.kh-busy body{cursor:progress}';document.head.appendChild(st);}catch(_){}
-  function post(fn,args){if(!SAVE(fn))return send(fn,args);hold(1);var done=false,end=function(){if(!done){done=true;hold(-1);}};
+  try{var st=document.createElement('style');st.textContent='.khveil{position:fixed;inset:0;z-index:10001;display:grid;place-items:center;background:rgba(214,233,207,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}.khveil[hidden]{display:none}@media (prefers-color-scheme:dark){.khveil{background:rgba(28,42,33,.6)}}.khveilbox{display:flex;align-items:center;gap:12px;background:#3f6e51;color:#f6ead2;font-family:"DotGothic16",monospace;font-size:1.15rem;padding:14px 22px;box-shadow:0 0 0 3px #3f6e51,0 0 0 6px #f6ead2,0 0 0 9px #3f6e51,0 10px 24px rgba(0,0,0,.25)}.khdots{display:flex;gap:5px}.khdots i{width:8px;height:8px;background:#f6ead2;animation:khdot .9s steps(1) infinite}.khdots i:nth-child(2){animation-delay:.3s}.khdots i:nth-child(3){animation-delay:.6s}@keyframes khdot{0%{opacity:1}50%{opacity:.2}}@media (prefers-reduced-motion:reduce){.khdots i{animation:none}}';document.head.appendChild(st);}catch(_){}
+  function post(fn,args){if(!SAVE(fn))return send(fn,args);var v=!/^kiko_/.test(fn);hold(1);if(v)veil(1);var done=false,end=function(){if(!done){done=true;hold(-1);if(v)veil(-1);}};
     // 通信がとても長引いたときは、20秒で押せるように戻す（保存はそのまま続く）
     var t=setTimeout(end,20000);return send(fn,args).then(function(v){clearTimeout(t);end();return v;},function(e){clearTimeout(t);end();throw e;});}
   function runner(){
