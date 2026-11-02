@@ -16,7 +16,8 @@ assert src.count(boot_line) == 1, 'boot line not found'
 
 shim = (root / 'tools' / 'shim.js').read_text(encoding='utf-8').replace('__API_URL__', cfg['api_url'])
 head = '\n'.join([
-    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover">',
+    '<style>html,body{overflow-x:clip}</style>',
     '<title>キコハウス</title>',
     '<meta name="theme-color" content="#cfc6c3" media="(prefers-color-scheme: light)">',
     '<meta name="theme-color" content="#1a1716" media="(prefers-color-scheme: dark)">',
