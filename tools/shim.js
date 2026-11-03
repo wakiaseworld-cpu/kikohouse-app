@@ -37,7 +37,7 @@
     return p;
   }
   window.__khApi=function(fn,args){return post(fn,args||[]).then(function(j){if(j.error==='auth'){out();throw new Error('auth');}if(j.error)throw new Error(j.error);return j.v;});};
-  function setHash(h){try{history.replaceState(null,'',h?'#'+h:location.pathname);}catch(_){}}
+  function setHash(h){try{history.replaceState(history.state,'',h?'#'+h:location.pathname);}catch(_){}}
   window.google={script:{
     get run(){return runner();},
     url:{getLocation:function(cb){cb({hash:location.hash.slice(1),parameter:{},parameters:{}});}},
