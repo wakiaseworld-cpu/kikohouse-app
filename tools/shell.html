@@ -12,8 +12,25 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>html,body{margin:0;background:#cfc6c3}@media (prefers-color-scheme:dark){html,body{background:#1a1716}}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+#khClock{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#d6e9cf;color:#1f3a5f;font-family:"DotGothic16","Hiragino Sans",system-ui,sans-serif;padding-bottom:12vh}
+#khClock.night{background:#1c2a21;color:#f1e9dc}
+#khClock[hidden]{display:none}
+#khClock .d{font-size:1.15rem}
+#khClock .t{font-size:min(24vw,7rem);line-height:1.05;letter-spacing:.02em}
+#khClock .l{font-size:1rem;margin-top:18px}
+</style>
 </head>
 <body>
+<div id="khClock" aria-hidden="true"><div class="d" id="khD"></div><div class="t" id="khT"></div><div class="l">よみこみちゅう...</div></div>
+<script>
+(function(){const W='日月火水木金土',c=document.getElementById('khClock');
+  const tick=()=>{const n=new Date(),h=n.getHours();c.classList.toggle('night',h>=20||h<6);
+    document.getElementById('khD').textContent=(n.getMonth()+1)+'月'+n.getDate()+'日（'+W[n.getDay()]+'）';
+    document.getElementById('khT').textContent=h+':'+String(n.getMinutes()).padStart(2,'0');};
+  tick();setInterval(tick,5000);})();
+</script>
 <script>
 // 画面の中身は暗号にして置いてある。ログインした人だけが鍵をもらって開ける。
 (async function () {
