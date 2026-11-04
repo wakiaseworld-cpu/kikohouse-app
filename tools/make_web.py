@@ -33,6 +33,11 @@ head = '\n'.join([
     '<style>.ai.p-push{background:#fbf0cf}</style>',
 ])
 out = src.replace(boot_line, head, 1)
+# 読み込み前の画面（index.html・app.html）で時計を出すので、アプリの中は最初からホーム（時計の画面を一瞬出さない）
+_lk = '<div class="screen lock" id="screen">'
+assert out.count(_lk) == 1, 'lock screen not found'
+out = out.replace(_lk, '<div class="screen" id="screen">', 1)
+out = out.replace('<div class="loading" id="hLoading">', '<div class="loading" id="hLoading" hidden>', 1)
 
 # お金の計画の数字は公開の場所に置かず、ログインした人にだけAPIから渡す
 a = out.index('  const TOTAL0=')
