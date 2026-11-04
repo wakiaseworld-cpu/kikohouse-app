@@ -20,8 +20,25 @@ form{display:flex;gap:8px}
 input{font:inherit;font-size:16px;width:12em;padding:8px 10px;border:1px solid #b9a06a;border-radius:8px;background:#fffaf0;color:#2b2418}
 form button{font-size:14px;padding:8px 14px;background:#5a4a30}
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+#khClock{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#d6e9cf;color:#1f3a5f;font-family:"DotGothic16","Hiragino Sans",system-ui,sans-serif;padding-bottom:12vh}
+#khClock.night{background:#1c2a21;color:#f1e9dc}
+#khClock[hidden]{display:none}
+#khClock .d{font-size:1.15rem}
+#khClock .t{font-size:min(24vw,7rem);line-height:1.05;letter-spacing:.02em}
+#khClock .l{font-size:1rem;margin-top:18px}
+</style>
 </head>
 <body>
+<div id="khClock" aria-hidden="true"><div class="d" id="khD"></div><div class="t" id="khT"></div><div class="l">よみこみちゅう...</div></div>
+<script>
+(function(){const W='日月火水木金土',c=document.getElementById('khClock');
+  const tick=()=>{const n=new Date(),h=n.getHours();c.classList.toggle('night',h>=20||h<6);
+    document.getElementById('khD').textContent=(n.getMonth()+1)+'月'+n.getDate()+'日（'+W[n.getDay()]+'）';
+    document.getElementById('khT').textContent=h+':'+String(n.getMinutes()).padStart(2,'0');};
+  tick();setInterval(tick,5000);})();
+</script>
 <main id="login" hidden>
   <img src="apple-touch-icon.png" alt="">
   <a class="btn" id="go">ログイン</a>
@@ -37,6 +54,7 @@ if (m) { set('kh-token', m[1]); history.replaceState(null, '', location.pathname
 function showLogin() {
   document.getElementById('go').href = LOGIN_URL + '?link=1';
   document.getElementById('login').hidden = false;
+  document.getElementById('khClock').hidden = true;
 }
 async function start() {
   const tok = get('kh-token');
