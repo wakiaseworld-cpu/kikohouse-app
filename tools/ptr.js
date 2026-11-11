@@ -34,7 +34,7 @@
       return true;
     }).then(function(ok){
       if(ok===false)return;
-      return Promise.all([window.__khPull&&window.__khPull(),window.__khMoney&&window.__khMoney()]);
+      return Promise.all([window.__khPull&&window.__khPull(),window.__khMoney&&window.__khMoney(),window.__khWalk&&window.__khWalk()]);
     }).catch(function(){}).then(function(){return wait(Math.max(0,600-(Date.now()-t0)));}).then(function(){busy=false;hide();});
   };
   document.addEventListener('touchstart',function(e){
