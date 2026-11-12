@@ -4,6 +4,8 @@
   if(!tok||!boot||!boot.plan){location.replace('./');return;}
   window.__MODE=boot.mode;window.__PLAN=boot.plan;window.__URL=boot.url;window.__NAMES=boot.names;
   function out(){try{localStorage.removeItem('kh-token');}catch(_){}location.replace('./');}
+  // 開いたあとに、ログインした人に合った中身（kh-boot）を読み直して上書きする（前に届いた古い中身を残さない）
+  setTimeout(function(){once('__boot',[]).then(function(j){if(j&&j.ok&&j.v){try{localStorage.setItem('kh-boot',JSON.stringify(j.v));}catch(_){}}}).catch(function(){});},4000);
   function once(fn,args){return fetch(API,{method:'POST',body:JSON.stringify({token:tok,fn:fn,args:args})}).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();});}
   // 読み込みだけは、一時的な失敗（アプリを裏にした・GASが混んでいた等）なら少し待ってやり直す
   var READ=/(^|_)get[A-Z]|^__boot$|Status$/;
