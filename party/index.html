@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f7f4ef">
+<meta name="theme-color" content="#fff3ee">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
 <title>動画同時視聴</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff4f3f'/%3E%3Cpath d='M12 9l12 7-12 7z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='11' fill='%23ff7a99'/%3E%3Cpath d='M12 9l12 7-12 7z' fill='%23fff'/%3E%3C/svg%3E">
 <style>
 /* 動画同時視聴：友だちとYouTubeを同じタイミングで見るページ（キコハウスの「動画」を切り出したもの） */
 :root{--bg:#f7f4ef;--card:#fff;--ink:#1f2433;--mut:#7a7e88;--line:#efe9df;--soft:#f3efe8;--red:#ff4f3f;--track:#e7e2da}
@@ -92,14 +94,55 @@ h2+.row{border-top:0}
 .dot.img{background-size:cover!important;background-position:center!important;color:transparent}
 .badge{display:inline-flex;align-items:center;gap:3px}
 .badge .dot{width:14px;height:14px;font-size:8px}
+.ov.cr{z-index:11}
+.cstage{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:0 auto 14px;overflow:hidden;border-radius:16px;background:#111;touch-action:none;cursor:grab}
+.cstage img{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.cstage:after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.55);pointer-events:none}
+.czr{width:100%;accent-color:var(--ink)}
+.cbtn{display:flex;gap:10px;margin-top:14px}.cbtn .pk{flex:1;padding:14px}.cbtn .big{flex:2}
 .nokey{text-align:center;padding:90px 24px;color:var(--mut)}
 .nokey b{display:block;color:var(--ink);font-size:22px;margin-bottom:8px}
+
+/* かわいく：パステルのピンクとピーチ、まるい文字、水玉の背景 */
+:root{--bg:#fff3ee;--card:#fff;--ink:#4b3f57;--mut:#a093ab;--line:#f6e6e4;--soft:#fdeceb;--red:#ff7a99;--track:#f6dfe3;--peach:#ffb48a;--mint:#bfeee0}
+html,body{font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans",system-ui,sans-serif;background:var(--bg) radial-gradient(#ffd9d4 1.4px,transparent 1.6px) 0 0/22px 22px}
+.logo{font-weight:800;letter-spacing:.02em}
+.logo i{width:30px;height:30px;border-radius:11px;background:linear-gradient(135deg,var(--red),var(--peach));box-shadow:0 4px 10px rgba(255,122,153,.35)}
+.card{border-radius:24px;box-shadow:0 8px 22px rgba(255,122,153,.12);border:0}
+.chip{background:#fff3f5;border:2px solid #ffe1e8}
+.wrap{border-radius:18px;background:#3b3046}
+.k{border:0;background:#ffeaf0;color:var(--ink);border-radius:16px;font-weight:800}
+.pp{background:linear-gradient(135deg,var(--red),var(--peach));box-shadow:0 8px 18px rgba(255,122,153,.4)}
+.badge{border-color:#ffd0dc}
+.tg{border:0;background:#ffeaf0;border-radius:999px;padding:7px 12px}
+.tg.on{background:var(--ink);color:#fff}
+.vol input,.czr{accent-color:var(--red)}
+.url input{border:2px solid #ffdbe3;border-radius:16px}
+.mini button{border:0;background:#ffeaf0;border-radius:14px;font-weight:800}
+.mini button.go{background:linear-gradient(135deg,var(--red),var(--peach))}
+.ic{border:0;background:#ffeaf0;border-radius:12px}
+.ic.go{background:var(--red)}
+.th{border-radius:12px}
+.tap,.big{background:linear-gradient(135deg,var(--red),var(--peach));border-radius:18px;box-shadow:0 8px 18px rgba(255,122,153,.3)}
+.sheet{border-radius:30px 30px 0 0}
+.sheet input#nm{border:2px solid #ffdbe3;border-radius:16px}
+.pk{border:0;background:#ffeaf0;border-radius:999px}
+.pk.off{background:#f6f1f3;color:var(--mut)}
+.cols button.on{outline-color:var(--red)}
+.cstage{border-radius:24px}
+h2{font-weight:800}
+h2:before{content:"♡ ";color:var(--red)}
+.lnk{color:var(--red);text-decoration:none;background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;box-shadow:0 4px 12px rgba(255,122,153,.15)}
+.err{color:#e0566f}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
  <div class="pick"><span class="av" id="av"></span><label class="pk">画像を選ぶ<input type="file" id="file" accept="image/*" hidden></label><button type="button" class="pk off" id="noimg">画像を外す</button></div>
  <input id="nm" maxlength="12" placeholder="名前" autocomplete="nickname"><div class="cols" id="cols"></div>
  <button class="big" id="enter" type="button">入る</button></div></div>
+<div class="ov cr" id="cr" hidden><div class="sheet"><div class="cstage" id="cs"><img id="ci" alt=""></div>
+ <input type="range" id="cz" class="czr" min="1" max="4" step="0.01" value="1" aria-label="大きさ">
+ <div class="cbtn"><button id="cno" class="pk" type="button">やめる</button><button id="cok" class="big" type="button">決定</button></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
@@ -133,10 +176,27 @@ const colorOf=id=>((S.members[id]||{}).color)||COLORS[7];
 // アイコン：選んだ画像の真ん中を正方形に切りぬいて 96px の jpeg にする（データベースに置くので小さく）
 function shrink(file){return new Promise((ok,ng)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const z=Math.min(im.naturalWidth,im.naturalHeight),c=document.createElement('canvas');c.width=c.height=96;
   c.getContext('2d').drawImage(im,(im.naturalWidth-z)/2,(im.naturalHeight-z)/2,z,z,0,0,96,96);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.8));};im.onerror=()=>{URL.revokeObjectURL(u);ng();};im.src=u;});}
+// トリミング：丸い枠の中で動かす（ドラッグ）・大きさを変える（バー・2本指・ホイール）。決定で 96px に切りぬく
+function crop(file){return new Promise(res=>{const u=URL.createObjectURL(file),im=$('ci'),cs=$('cs'),cz=$('cz');
+  im.onerror=()=>{URL.revokeObjectURL(u);res(null);};
+  im.onload=()=>{$('cr').hidden=false;const S=cs.clientWidth,iw=im.naturalWidth,ih=im.naturalHeight,base=S/Math.min(iw,ih);let z=1,ox=(S-iw*base)/2,oy=(S-ih*base)/2;cz.value=1;
+    const draw=()=>{const sc=base*z;ox=Math.min(0,Math.max(S-iw*sc,ox));oy=Math.min(0,Math.max(S-ih*sc,oy));im.style.width=iw+'px';im.style.transform='translate('+ox+'px,'+oy+'px) scale('+sc+')';};
+    const zoomTo=(nz,cx,cy)=>{nz=Math.min(4,Math.max(1,nz));const k=nz/z;ox=cx-(cx-ox)*k;oy=cy-(cy-oy)*k;z=nz;cz.value=z;draw();};
+    draw();const pts=new Map();let d0=0,z0=1;
+    cs.onpointerdown=e=>{try{cs.setPointerCapture(e.pointerId);}catch(_){}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2){const [a,b]=[...pts.values()];d0=Math.hypot(a.x-b.x,a.y-b.y)||1;z0=z;}};
+    cs.onpointermove=e=>{const p=pts.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pts.size===1){ox+=dx;oy+=dy;draw();}else if(pts.size===2){const [a,b]=[...pts.values()],r=cs.getBoundingClientRect();zoomTo(z0*Math.hypot(a.x-b.x,a.y-b.y)/d0,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);}};
+    cs.onpointerup=cs.onpointercancel=e=>{pts.delete(e.pointerId);if(pts.size===1){z0=z;}};
+    cs.onwheel=e=>{e.preventDefault();const r=cs.getBoundingClientRect();zoomTo(z*(e.deltaY<0?1.1:1/1.1),e.clientX-r.left,e.clientY-r.top);};
+    cz.oninput=()=>zoomTo(Number(cz.value),S/2,S/2);
+    const end=v=>{$('cr').hidden=true;URL.revokeObjectURL(u);cs.onpointerdown=cs.onpointermove=cs.onpointerup=cs.onpointercancel=cs.onwheel=null;res(v);};
+    $('cno').onclick=()=>end(null);
+    $('cok').onclick=()=>{const sc=base*z,c=document.createElement('canvas');c.width=c.height=96;c.getContext('2d').drawImage(im,-ox/sc,-oy/sc,S/sc,S/sc,0,0,96,96);end(c.toDataURL('image/jpeg',.8));};};
+  im.src=u;});}
 function paintDot(d,name,color,icon){d.textContent=icon?'':String(name||'?').slice(0,1);d.classList.toggle('img',!!icon);d.style.backgroundColor=color||COLORS[7];d.style.backgroundSize='cover';d.style.backgroundPosition='center';if(icon)d.style.backgroundImage='url("'+icon+'")';else d.style.backgroundImage='';}
 function askName(cb){const ov=$('ov'),nm=$('nm'),cols=$('cols');nm.value=ls('name')||'';let col=ls('color')||COLORS[Math.floor(Math.random()*7)];let icon=ls('icon')||'';
   const av=$('av'),pv=()=>{paintDot(av,nm.value.trim()||'?',col,icon);$('noimg').hidden=!icon;};
-  $('file').onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;shrink(f).then(d=>{icon=d;pv();}).catch(()=>{});};
+  $('file').onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;crop(f).then(d=>{if(d){icon=d;pv();}});};
   $('noimg').onclick=()=>{icon='';pv();};nm.oninput=pv;
   cols.textContent='';COLORS.slice(0,7).forEach(c=>{const b=btn(c===col?'on':'',null,()=>{col=c;[...cols.children].forEach(x=>x.classList.toggle('on',x===b));});b.style.background=c;b.setAttribute('aria-label','色');b.addEventListener('click',pv);cols.append(b);});pv();
   const go=()=>{const v=nm.value.trim().slice(0,12);if(!v){nm.focus();return;}ls('name',v);ls('color',col);ls('icon',icon||null);ov.hidden=true;cb();};
