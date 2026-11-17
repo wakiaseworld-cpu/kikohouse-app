@@ -65,7 +65,7 @@ async function start() {
     if (j.ok) set('kh-boot', JSON.stringify(j.v));
   } catch (_) {}
   let b = null; try { b = JSON.parse(get('kh-boot')); } catch (_) {}
-  if (b && b.plan) location.replace('app.html'); else showLogin();
+  if (b && b.plan) location.replace('app.html' + (/^#[A-Za-z0-9/_:-]+$/.test(location.hash) ? location.hash : '')); else showLogin();
 }
 document.getElementById('code').addEventListener('submit', e => {
   e.preventDefault();
