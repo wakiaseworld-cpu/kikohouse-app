@@ -197,6 +197,8 @@ input:focus{outline:none!important;box-shadow:0 0 0 3px #ffd6ec!important}
 #leave{display:block;margin:12px auto 0;padding:8px 18px!important}#leave[hidden]{display:none}
 .kick .khd{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 6px;color:#c23d87;font-size:17px}
 .kick .khd .dot{width:64px;height:64px;font-size:26px;box-shadow:0 0 0 3px #fff,0 0 0 5px #ffb6da!important}
+.k.ico:after{content:"";position:absolute;inset:0;background:center/22px 22px no-repeat;filter:drop-shadow(0 1px 0 #d93d8c)}
+.k.ico{position:relative}.k.prev:after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='4' y='5' width='3' height='14' rx='1.2' fill='%23fff'/%3E%3Cpath d='M20 6.2v11.6a1 1 0 0 1-1.5.9L9.6 13a1.2 1.2 0 0 1 0-2l8.9-5.7a1 1 0 0 1 1.5.9z' fill='%23fff'/%3E%3C/svg%3E")}.k.next:after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='17' y='5' width='3' height='14' rx='1.2' fill='%23fff'/%3E%3Cpath d='M4 6.2v11.6a1 1 0 0 0 1.5.9l8.9-5.7a1.2 1.2 0 0 0 0-2L5.5 5.3A1 1 0 0 0 4 6.2z' fill='%23fff'/%3E%3C/svg%3E")}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
@@ -430,8 +432,14 @@ function build(){const A=$('app');A.textContent='';
     if(n.state==='play'){if(P&&ready){applying=Date.now()+1500;P.pauseVideo();}setNow({state:'pause',pos:cur()});savePos();}
     else{if(P&&ready){applying=Date.now()+1500;P.playVideo();}setNow({state:'play',pos:n.ended?0:cur(),ended:false});}});pp.id='pp';pp.setAttribute('aria-label','再生／一時停止');
   const ppw=el('span','ppw'),bd=el('span','badge');bd.id='badge';bd.hidden=true;ppw.append(pp,bd);
-  const ctl=el('div','ctl');ctl.append(btn('k','最初',()=>{const n=S.now;if(!n)return;if(P&&ready){applying=Date.now()+1500;P.seekTo(0,true);}setNow({pos:0,ended:false,state:n.ended?'pause':n.state});}),btn('k','-10',()=>skip(-10)),ppw,btn('k','+10',()=>skip(10)),
-    btn('k','次へ',()=>{const v=S.now&&S.now.vid;tx(c=>{if(!c.now||c.now.vid!==v)return false;const nx=c.queue.shift();if(!nx)return false;savePos();c.now={vid:nx.vid,title:nx.title||'',state:'play',pos:0,at:now(),by:cid,add:nx.by||cid};return true;});}));
+  const ctl=el('div','ctl');// ⏮：3秒たっていたら最初へ、始まってすぐなら前の動画へ（今の動画は「次に再生」の先頭へ）
+  const toTop=n=>{if(P&&ready){applying=Date.now()+1500;P.seekTo(0,true);}setNow({pos:0,ended:false,state:n.ended?'pause':n.state});};
+  const prev=()=>{const n=S.now;if(!n)return;if(!n.ended&&cur()>3)return toTop(n);const pv=S.recent.find(x=>x&&x.vid&&x.vid!==n.vid);if(!pv)return toTop(n);
+    savePos();const v=n.vid;tx(c=>{if(!c.now||c.now.vid!==v)return false;c.queue.unshift({vid:c.now.vid,title:c.now.title||'',by:c.now.add||cid});c.now={vid:pv.vid,title:pv.title||'',state:'play',pos:0,at:now(),by:cid,add:cid};return true;});
+    if(ref)ref.child('recent').transaction(c=>arr(c).filter(x=>x&&x.vid!==v));};
+  const pb0=btn('k ico prev',null,prev);pb0.setAttribute('aria-label','前へ');
+  ctl.append(pb0,btn('k','-10',()=>skip(-10)),ppw,btn('k','+10',()=>skip(10)),
+    (b=>{b.setAttribute('aria-label','次へ');return b;})(btn('k ico next',null,()=>{const v=S.now&&S.now.vid;tx(c=>{if(!c.now||c.now.vid!==v)return false;const nx=c.queue.shift();if(!nx)return false;savePos();c.now={vid:nx.vid,title:nx.title||'',state:'play',pos:0,at:now(),by:cid,add:nx.by||cid};return true;});})));
   const opt=el('div','opt');
   if(!iOS){const v=el('label','vol');v.append(el('span',null,'音量'));const r=el('input');r.type='range';r.min=0;r.max=100;r.step=1;const v0=Number(ls('vol'));r.value=ls('vol')===null||isNaN(v0)?80:v0;
     r.addEventListener('input',()=>{ls('vol',r.value);if(Number(r.value)>0&&ls('mute')==='1'){ls('mute',0);sound();paint();}vol();});v.append(r);opt.append(v);}
