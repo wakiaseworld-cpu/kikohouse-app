@@ -294,9 +294,16 @@ function paintDot(d,name,color,icon){d.textContent=icon?'':String(name||'?').sli
 function askName(cb,inRoom){const ov=$('ov'),nm=$('nm'),cols=$('cols');nm.value=ls('name')||'';let col=ls('color')||COLORS[Math.floor(Math.random()*7)];let icon=ls('icon')||'';let dots=null;try{dots=JSON.parse(ls('dots')||'null');}catch(_){}
   const av=$('av'),pv=()=>{paintDot(av,nm.value.trim()||'?',col,icon);$('noimg').hidden=!icon;};
   $('dbtn').onclick=()=>dotEdit(dots,col).then(r=>{if(!r)return;dots=r.grid;icon=r.icon;pv();});
-  $('noimg').onclick=()=>{icon='';dots=null;pv();};nm.oninput=pv;
-  cols.textContent='';COLORS.slice(0,7).forEach(c=>{const b=btn(c===col?'on':'',null,()=>{col=c;if(dots&&icon)icon=dotIcon(dots,col);[...cols.children].forEach(x=>x.classList.toggle('on',x===b));});b.style.background=c;b.setAttribute('aria-label','色');b.addEventListener('click',pv);cols.append(b);});pv();
-  const go=()=>{const v=nm.value.trim().slice(0,12);if(!v){nm.focus();return;}ls('name',v);ls('color',col);ls('icon',icon||null);ls('dots',icon&&dots?JSON.stringify(dots):null);ov.hidden=true;cb();};
+  $('noimg').onclick=()=>{icon='';dots=null;pv();};
+  // 部屋にいる人と同じ名前なら、その人のアイコンと色を出す（名前を変えたら自分のに戻す）
+  let mine=null,hit=null;const pd=v=>{try{return JSON.parse(v||'null');}catch(_){return null;}};
+  const look=()=>{const t=nm.value.trim();const h=t?Object.entries(S.members||{}).find(([id,m])=>id!==cid&&m&&String(m.name||'').trim()===t):null;const hid=h?h[0]:null;
+    if(hid&&hid!==hit){if(!hit)mine={col,icon,dots};hit=hid;const m=h[1];col=m.color||col;icon=m.icon||'';dots=pd(m.dots);}
+    else if(!hid&&hit){hit=null;({col,icon,dots}=mine);}
+    [...cols.children].forEach(x=>x.classList.toggle('on',x.dataset.c===col));pv();};
+  nm.oninput=look;askName.look=look;
+  cols.textContent='';COLORS.slice(0,7).forEach(c=>{const b=btn(c===col?'on':'',null,()=>{col=c;if(dots&&icon)icon=dotIcon(dots,col);[...cols.children].forEach(x=>x.classList.toggle('on',x===b));});b.dataset.c=c;b.style.background=c;b.setAttribute('aria-label','色');b.addEventListener('click',pv);cols.append(b);});look();
+  const go=()=>{const v=nm.value.trim().slice(0,12);if(!v){nm.focus();return;}ls('name',v);ls('color',col);ls('icon',icon||null);ls('dots',icon&&dots?JSON.stringify(dots):null);ov.hidden=true;askName.look=null;cb();};
   const lv=$('leave');lv.hidden=!inRoom;lv.onclick=leave;
   $('enter').onclick=go;nm.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}};ov.hidden=false;setTimeout(()=>nm.focus(),50);}
 
@@ -386,8 +393,11 @@ function merge(){const nm=(ls('name')||'').trim();if(!nm)return;
 let leaving=false,seenSelf=false;
 function leave(){leaving=true;if(!ref){location.reload();return;}const m=ref.child('members/'+cid);try{m.onDisconnect().cancel();}catch(_){}
   ls('name',null);Promise.resolve(m.remove()).then(()=>location.reload(),()=>location.reload());}
+function fbApp(){return firebase.apps.find(a=>a.name==='party')||firebase.initializeApp({apiKey:'AIzaSyCmHJLuKoEXS2lYhl6d-ms2N0Xa3ExiF0s',authDomain:'kikohouse-943cf.firebaseapp.com',projectId:'kikohouse-943cf',appId:'1:340471681800:web:0868f848740206b4a812bd',databaseURL:DB},'party');}
+// 名前を入れる前に、部屋にいる人だけ先に読む
+function peek(){if(!window.firebase||!ROOM)return;try{fbApp().database().ref('party/'+ROOM+'/members').once('value',s=>{if(!ref){S.members=s.val()||{};if(askName.look)askName.look();}});}catch(_){}}
 function start(){
-  const app=firebase.apps.find(a=>a.name==='party')||firebase.initializeApp({apiKey:'AIzaSyCmHJLuKoEXS2lYhl6d-ms2N0Xa3ExiF0s',authDomain:'kikohouse-943cf.firebaseapp.com',projectId:'kikohouse-943cf',appId:'1:340471681800:web:0868f848740206b4a812bd',databaseURL:DB},'party');
+  const app=fbApp();
   const db=app.database();ref=db.ref('party/'+ROOM);
   db.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0;});
   db.ref('.info/connected').on('value',s=>{if(s.val())reg();});
@@ -486,7 +496,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip)ap
 
 const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();};
 const m0=me();
-if(m0.name)go();else askName(go);
+if(m0.name)go();else{peek();askName(go);}
 }
 }
 </script>
