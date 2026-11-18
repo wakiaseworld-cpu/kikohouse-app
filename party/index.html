@@ -348,7 +348,7 @@ const fresh=(vid,title,add,pos)=>({vid,title:title||'',state:'wait',pos:pos||0,a
 const exp=n=>!n?0:n.state==='play'?(n.pos||0)+Math.max(0,now()-(n.at||0))/1000:(n.pos||0);
 function make(host){const win=host.ownerDocument.defaultView;ready=false;loaded='';
   return yt(win).then(Y=>{host.textContent='';const d=win.document.createElement('div');host.append(d);
-    P=new Y.Player(d,{width:'100%',height:'100%',playerVars:{playsinline:1,rel:0,modestbranding:1,hl:'ja',cc_lang_pref:'ja',cc_load_policy:ls('cc')==='1'?1:0,controls:iOS||ls('ytc')==='1'?1:0,fs:iOS||ls('ytc')==='1'?1:0,disablekb:ls('ytc')==='1'?0:1},
+    P=new Y.Player(d,{width:'100%',height:'100%',playerVars:Object.assign(ls('cc')==='1'?{cc_lang_pref:'ja'}:{},{playsinline:1,rel:0,modestbranding:1,hl:'ja',cc_load_policy:ls('cc')==='1'?1:0,controls:iOS||ls('ytc')==='1'?1:0,fs:iOS||ls('ytc')==='1'?1:0,disablekb:ls('ytc')==='1'?0:1}),
       events:{onReady:()=>{ready=true;vol();sound();apply();paint();},onStateChange:onState,onError:e=>{perr={vid:loaded,code:e&&e.data};paint();}}});},e=>{err=e.message;paint();});}
 function markReady(){const n=S.now;if(!n||n.state!=='wait'||(n.rd&&n.rd[cid]))return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.rd=c.now.rd||{};if(c.now.rd[cid])return false;c.now.rd[cid]=true;return true;});}
@@ -391,7 +391,7 @@ function apply(){const n=S.now;if(!P||!ready)return;
 function onState(e){const st=e.data,n=S.now;
   if(n&&n.state==='wait'&&n.vid===loaded){if(pre&&st===1){pre=false;applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}markReady();}paint();return;}
   if(st===1&&n&&n.vid===loaded&&late){late=false;stuck=0;if(n.state==='play'){const w=exp(n);if(Math.abs((P.getCurrentTime()||0)-w)>1.2){applying=Date.now()+1500;P.seekTo(w,true);}}}
-  if(st===1&&n&&n.vid===loaded){stuck=0;const t=(P.getVideoData&&P.getVideoData().title)||'';
+  if(st===1&&n&&n.vid===loaded){stuck=0;if(ls('cc')!=='1'&&onState.cc!==n.vid+n.at){onState.cc=n.vid+n.at;try{P.unloadModule('captions');P.unloadModule('cc');}catch(_){}}const t=(P.getVideoData&&P.getVideoData().title)||'';
     if(t&&!n.title)tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.title)return false;c.now.title=t;return true;});
     if(onState.last!==n.vid+n.at){onState.last=n.vid+n.at;addRecent(n.vid,t||n.title);}}
   paint();
@@ -400,6 +400,7 @@ function onState(e){const st=e.data,n=S.now;
       c.now=nx?fresh(nx.vid,nx.title,nx.by||cid,0):Object.assign({},c.now,{state:'pause',pos:end,ended:true,at:now(),by:cid});return true;});return;}
   if(Date.now()<applying||!n||n.vid!==loaded)return;
   const cur=P.getCurrentTime()||0;
+  if(st===1&&n.state==='play'&&iOS&&Math.abs(cur-exp(n))>2){applying=Date.now()+1500;P.seekTo(exp(n),true);return;}
   if(st===1&&(n.state!=='play'||Math.abs(cur-exp(n))>2))setNow({state:'play',pos:cur,ended:false});
   else if(st===2&&n.state==='play'){if(iOS){applying=Date.now()+1500;setTimeout(()=>{try{P&&P.playVideo();}catch(_){}},300);return;}setNow({state:'pause',pos:cur});savePos();}}
 function sound(){if(!P||!ready)return;try{(!forced&&ls('mute')!=='1')?P.unMute():P.mute();}catch(_){}}
