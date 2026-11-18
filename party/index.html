@@ -186,7 +186,6 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .fhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.fhd b{color:#ff5fae;font-size:17px}
 .frow{display:flex;gap:8px;align-items:center}.frow input{flex:1;margin:0!important;min-width:0}.frow button{flex:none!important;padding:0 20px!important;height:46px}
 .fsheet.kb{padding-top:10px!important}.fsheet.kb .fhd{display:none}
-.fsheet .frow{order:3;margin-top:8px}.fsheet .sres{order:2;margin-top:0!important}
 .fsheet .sres{flex:1;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
 .sres{margin-top:10px}.sres .sinfo{text-align:center;color:#e07fb3;font-size:13px;padding:10px 0}
 .sres .shd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;color:#c23d87}
@@ -616,8 +615,10 @@ function fitFind(go){if(!FD||FD.ov.hidden)return;const st=$('wrap')||$('stage');
   const vv=window.visualViewport,vh=vv?vv.height:innerHeight,vt=vv?vv.offsetTop:0,kb=document.activeElement===FD.fi;
   // ページを動かすのは開いたときだけ（キーボードが出ているあいだに動かすと、iPhoneの自動スクロールとけんかして揺れる）
   if(go&&!kb){const d=st.getBoundingClientRect().top-8;if(Math.abs(d)>4)window.scrollBy(0,d);}
-  const r=st.getBoundingClientRect(),top=Math.max(vt,Math.round(r.bottom+6)),h=Math.max(kb?76:260,Math.round(vt+vh-top));
-  ov.style.top=Math.min(top,vt+vh-h)+'px';ov.style.bottom='auto';sh.style.height=h+'px';sh.classList.toggle('kb',kb);}
+  sh.classList.toggle('kb',kb);const r=st.getBoundingClientRect(),top=Math.max(vt,Math.round(r.bottom+6));
+  // 結果がまだないときは、入れるところの高さだけにする
+  let h;if(!FD.res.children.length){sh.style.height='auto';h=Math.min(sh.offsetHeight,vh);}else h=Math.max(kb?76:260,Math.round(vt+vh-top));
+  ov.style.top=Math.max(vt,Math.min(top,vt+vh-h))+'px';ov.style.bottom='auto';sh.style.height=h+'px';}
 let fitR=0;const fitSoon=()=>{cancelAnimationFrame(fitR);fitR=requestAnimationFrame(()=>fitFind());};
 addEventListener('resize',fitSoon);if(window.visualViewport){visualViewport.addEventListener('resize',fitSoon);visualViewport.addEventListener('scroll',fitSoon);}
 function openFind(q){
@@ -629,7 +630,7 @@ function openFind(q){
     const ref2=()=>{fitSoon();setTimeout(fitSoon,350);setTimeout(fitSoon,800);};fi.addEventListener('focus',ref2);fi.addEventListener('blur',ref2);
     fi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fi.blur();run();}});
     const run=()=>{const q=fi.value.trim();if(!q){fi.focus();return;}if(vidOf(q)||listOf(q)){fi.value='';ov.hidden=true;const U=$('uin');U.value=q;U.focus();return;}if(!SEARCH)return;
-      sb.disabled=true;res.textContent='';res.append(el('div','sinfo','探しています…'));
+      sb.disabled=true;res.textContent='';res.append(el('div','sinfo','探しています…'));fitSoon();
       fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'yt',q})}).then(r=>r.json()).then(j=>{
         res.textContent='';
         if(j.error){res.append(el('div','sinfo',j.error==='limit'?'今日はもう探せません。明日また使えます':/KEY/.test(j.error)?'鍵がまだ入っていません':'うまく探せませんでした'));return;}
@@ -638,9 +639,9 @@ function openFind(q){
           const mt=[it.views?nV(it.views)+'回':'',it.at?ago(it.at):''].filter(Boolean).join('・');const mtd=el('div','rs smeta',mt);if(mt||it.desc)r.querySelector('.tx').append(mtd);
           const im=r.querySelector('.th');if(it.sec){const w=el('span','thw');im.replaceWith(w);w.append(im,el('span','dur',hms(it.sec)));}
           res.append(r);if(it.desc){const d=el('div','sdesc',it.desc);d.hidden=true;res.append(d);r.classList.add('stap');mtd.append(el('span','sarr','▾'));r.addEventListener('click',e=>{if(e.target.closest('button'))return;d.hidden=!d.hidden;mtd.lastChild.textContent=d.hidden?'▾':'▴';});}});
-        res.scrollTop=0;
-      }).catch(()=>{res.textContent='';res.append(el('div','sinfo','うまく探せませんでした'));}).finally(()=>{sb.disabled=false;});};
-    FD={ov,fi,run};}
+        res.scrollTop=0;fitSoon();
+      }).catch(()=>{res.textContent='';res.append(el('div','sinfo','うまく探せませんでした'));}).finally(()=>{sb.disabled=false;fitSoon();});};
+    FD={ov,fi,run,res};}
   FD.ov.hidden=false;fitFind(true);
   if(q){FD.fi.value=q;FD.run();}else if(!FD.fi.value)FD.fi.focus();}
 function hms(t){t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),x=String(t%60).padStart(2,'0');return h?h+':'+String(m).padStart(2,'0')+':'+x:m+':'+x;}
