@@ -231,6 +231,8 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 /* YouTubeのボタンを出しているときも、YouTubeマーク（アプリに飛ぶ）は押せないように */
 .lgcover{position:absolute;left:0;right:56px;bottom:0;height:50px;z-index:2}
 .ttcover{position:absolute;left:0;top:0;width:72%;height:64px;z-index:2}.ttcover[hidden]{display:none}.lgcover[hidden]{display:none}
+.fshint{position:absolute;right:4px;bottom:62px;width:42px;height:42px;border-radius:50%;border:3px dashed #ff8cc6;z-index:4;pointer-events:none;box-sizing:border-box;animation:fsh 1s ease-in-out infinite}
+.fshint[hidden]{display:none}@keyframes fsh{50%{opacity:.3;transform:scale(.9)}}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
@@ -500,7 +502,9 @@ function build(){const A=$('app');A.textContent='';
   top.append(lg,cp);
   const er=el('div','err');er.id='err';
   const M=el('div','card');const mem=el('div','mem');mem.id='mem';M.append(mem);
-  const PC=el('div','card'),wrap=el('div','wrap'),stage=el('div','stage');stage.id='stage';wrap.id='wrap';const stt=el('div','stat');stt.id='stat';stt.hidden=true;const cov=el('div','cover');cov.id='cover';const lgc=el('div','lgcover');lgc.id='lgc';const ttc=el('div','ttcover');ttc.id='ttc';const fx=btn('fsx','✕',fsToggle);fx.setAttribute('aria-label','戻る');wrap.append(stage,cov,lgc,ttc,stt,fx,el('div','pipnote','小窓で再生中'));
+  const PC=el('div','card'),wrap=el('div','wrap'),stage=el('div','stage');stage.id='stage';wrap.id='wrap';const stt=el('div','stat');stt.id='stat';stt.hidden=true;const cov=el('div','cover');cov.id='cover';const hint=el('i','fshint');hint.hidden=true;let hintT=0;
+  // iPhone：動画をタップしたら、押せる場所（YouTubeの全画面ボタン）に輪を3秒出す
+  cov.addEventListener('click',()=>{if(!cov.classList.contains('hole'))return;hint.hidden=false;clearTimeout(hintT);hintT=setTimeout(()=>{hint.hidden=true;},3000);});const lgc=el('div','lgcover');lgc.id='lgc';const ttc=el('div','ttcover');ttc.id='ttc';const fx=btn('fsx','✕',fsToggle);fx.setAttribute('aria-label','戻る');wrap.append(stage,cov,hint,lgc,ttc,stt,fx,el('div','pipnote','小窓で再生中'));
   const tt=el('div','ttl');tt.id='ttl';const by=el('div','by');by.id='by';
   const bar=el('input','bar');bar.id='bar';bar.type='range';bar.min=0;bar.max=1;bar.step=1;bar.value=0;
   bar.addEventListener('input',()=>{drag=true;$('cur').textContent=fmt(bar.value);});
