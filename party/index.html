@@ -185,6 +185,7 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .fsheet{pointer-events:auto;height:56vh;display:flex;flex-direction:column;padding:14px 16px calc(10px + env(safe-area-inset-bottom))!important}
 .fhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.fhd b{color:#ff5fae;font-size:17px}
 .frow{display:flex;gap:8px;align-items:center}.frow input{flex:1;margin:0!important;min-width:0}.frow button{flex:none!important;padding:0 20px!important;height:46px}
+.fsheet.kb{padding-top:10px!important}.fsheet.kb .fhd{display:none}
 .fsheet .sres{flex:1;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
 .sres{margin-top:10px}.sres .sinfo{text-align:center;color:#e07fb3;font-size:13px;padding:10px 0}
 .sres .shd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;color:#c23d87}
@@ -609,10 +610,14 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
   paint(ls('hdev')||(iOS?'i':'o'));ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 // さがす画面：動画がまるごと見える位置までスクロールして、その下に画面を出す
 let FD=null;
-function fitFind(){if(!FD||FD.ov.hidden)return;const st=$('wrap')||$('stage');const sh=FD.ov.firstChild;if(!st){sh.style.height='';return;}
-  window.scrollBy(0,st.getBoundingClientRect().top-8);const b=st.getBoundingClientRect().bottom;
-  sh.style.height=Math.max(260,Math.round(innerHeight-b-10))+'px';}
-addEventListener('resize',()=>fitFind());
+// キーボードが出ているときは、見えている範囲（visualViewport）の中で、動画の下からキーボードの上までに画面を出す
+function fitFind(){if(!FD||FD.ov.hidden)return;const st=$('wrap')||$('stage');const ov=FD.ov,sh=ov.firstChild;if(!st){sh.style.height='';return;}
+  const vv=window.visualViewport,vh=vv?vv.height:innerHeight,vt=vv?vv.offsetTop:0,kb=innerHeight-vh>120;
+  const d=st.getBoundingClientRect().top-vt-8;if(Math.abs(d)>4)window.scrollBy(0,d);
+  const r=st.getBoundingClientRect(),top=Math.max(vt,Math.round(r.bottom+6)),h=Math.max(kb?150:260,Math.round(vt+vh-top));
+  ov.style.top=Math.min(top,vt+vh-h)+'px';ov.style.bottom='auto';sh.style.height=h+'px';sh.classList.toggle('kb',kb);}
+let fitR=0;const fitSoon=()=>{cancelAnimationFrame(fitR);fitR=requestAnimationFrame(()=>fitFind());};
+addEventListener('resize',fitSoon);if(window.visualViewport){visualViewport.addEventListener('resize',fitSoon);visualViewport.addEventListener('scroll',fitSoon);}
 function openFind(q){
   if(!FD){const ov=el('div','fov'),sh=el('div','sheet fsheet'),hd=el('div','fhd');
     hd.append(el('b',null,'🔍 動画をさがす'),btn('ic','✕',()=>{ov.hidden=true;}));
