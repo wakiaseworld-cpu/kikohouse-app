@@ -362,10 +362,10 @@ function paintStat(){const el2=$('stat');if(!el2)return;const n=S.now;let st=nul
   else if(!n){}
   else if(n.state==='wait'){t='みんなの読み込み待ち';bg=true;spin=true;who=true;}
   else if(n.ended){t='おわり';bg=true;}
-  else if(n.state==='play'){if(st!==1){if(stuck>=3&&!forced){t='止められています';bg=st!==2;}else{t='読み込み中';spin=true;bg=st!==2;}}}
+  else if(n.state==='play'){if(st!==1){if(stuck>=3&&st!==3){t='止められています';bg=st!==2;}else{t='読み込み中';spin=true;bg=st!==2;}}}
   else if(n.state==='pause'){t='一時停止中';bg=st===null||st===-1||st===5;mini=!bg;}
   // 読み込み中のまま10秒たったら読み込み直す
-  if(t==='読み込み中'&&!document.hidden){if(!ldAt)ldAt=Date.now();else if(Date.now()-ldAt>10000){ldAt=Date.now();loaded='';apply();}}else ldAt=0;
+  if(t==='読み込み中'&&!document.hidden&&(st===3||st===-1||st===null)){if(!ldAt)ldAt=Date.now();else if(Date.now()-ldAt>10000){ldAt=Date.now();loaded='';apply();}}else ldAt=0;
   el2.hidden=!t;if(!t)return;el2.classList.toggle('bg',bg);el2.classList.toggle('mini',mini);
   el2.style.backgroundImage=bg&&n?'url("'+thumb(n.vid)+'")':'';
   const k=[t,spin,who,who?JSON.stringify(n.rd||{})+Object.keys(S.members).join():''].join('|');if(el2.dataset.k===k)return;el2.dataset.k=k;
