@@ -611,9 +611,10 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
 // さがす画面：動画がまるごと見える位置までスクロールして、その下に画面を出す
 let FD=null;
 // キーボードが出ているときは、見えている範囲（visualViewport）の中で、動画の下からキーボードの上までに画面を出す
-function fitFind(){if(!FD||FD.ov.hidden)return;const st=$('wrap')||$('stage');const ov=FD.ov,sh=ov.firstChild;if(!st){sh.style.height='';return;}
+function fitFind(go){if(!FD||FD.ov.hidden)return;const st=$('wrap')||$('stage');const ov=FD.ov,sh=ov.firstChild;if(!st){sh.style.height='';return;}
   const vv=window.visualViewport,vh=vv?vv.height:innerHeight,vt=vv?vv.offsetTop:0,kb=innerHeight-vh>120;
-  const d=st.getBoundingClientRect().top-vt-8;if(Math.abs(d)>4)window.scrollBy(0,d);
+  // ページを動かすのは開いたときだけ（キーボードが出ているあいだに動かすと、iPhoneの自動スクロールとけんかして揺れる）
+  if(go&&!kb){const d=st.getBoundingClientRect().top-8;if(Math.abs(d)>4)window.scrollBy(0,d);}
   const r=st.getBoundingClientRect(),top=Math.max(vt,Math.round(r.bottom+6)),h=Math.max(kb?150:260,Math.round(vt+vh-top));
   ov.style.top=Math.min(top,vt+vh-h)+'px';ov.style.bottom='auto';sh.style.height=h+'px';sh.classList.toggle('kb',kb);}
 let fitR=0;const fitSoon=()=>{cancelAnimationFrame(fitR);fitR=requestAnimationFrame(()=>fitFind());};
@@ -638,7 +639,7 @@ function openFind(q){
         res.scrollTop=0;
       }).catch(()=>{res.textContent='';res.append(el('div','sinfo','うまく探せませんでした'));}).finally(()=>{sb.disabled=false;});};
     FD={ov,fi,run};}
-  FD.ov.hidden=false;fitFind();
+  FD.ov.hidden=false;fitFind(true);
   if(q){FD.fi.value=q;FD.run();}else if(!FD.fi.value)FD.fi.focus();}
 function hms(t){t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),x=String(t%60).padStart(2,'0');return h?h+':'+String(m).padStart(2,'0')+':'+x:m+':'+x;}
 function nV(n){return n>=1e8?(n/1e8).toFixed(n<1e9?1:0).replace(/\.0$/,'')+'億':n>=1e4?(n/1e4).toFixed(n<1e5?1:0).replace(/\.0$/,'')+'万':String(n);}
