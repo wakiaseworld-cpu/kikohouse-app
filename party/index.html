@@ -187,12 +187,22 @@ h2:before{color:#fff!important}
 .err{color:#d93d8c!important;text-align:center}
 .lnk{font-family:inherit}
 input:focus{outline:none!important;box-shadow:0 0 0 3px #ffd6ec!important}
+
+/* 見てる人：札なしでアイコン大きく、名前は下 */
+.mem{gap:14px!important}
+.chip{flex-direction:column;gap:4px!important;background:none!important;border:0!important;padding:0!important;box-shadow:none!important;font-size:12px!important;max-width:64px;text-align:center;overflow-wrap:anywhere}
+.chip .dot{width:44px!important;height:44px!important;font-size:18px!important;box-shadow:0 0 0 3px #fff,0 0 0 5px #ffb6da!important}
+.chip .dot:after{width:12px!important;height:12px!important;border:2px solid #fff!important}
+.badge .dot{box-shadow:none!important}
+#leave{display:block;margin:12px auto 0;padding:8px 18px!important}#leave[hidden]{display:none}
+.kick .khd{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 6px;color:#c23d87;font-size:17px}
+.kick .khd .dot{width:64px;height:64px;font-size:26px;box-shadow:0 0 0 3px #fff,0 0 0 5px #ffb6da!important}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
  <div class="pick"><span class="av" id="av"></span><button type="button" class="pk" id="dbtn">ドット絵をかく</button><button type="button" class="pk off" id="noimg">消す</button></div>
  <input id="nm" maxlength="12" placeholder="名前" autocomplete="nickname"><div class="cols" id="cols"></div>
- <button class="big" id="enter" type="button">入る</button></div></div>
+ <button class="big" id="enter" type="button">入る</button><button class="pk off" id="leave" type="button" hidden>退出</button></div></div>
 <div class="ov cr" id="dz" hidden><div class="sheet dsheet"><div class="dhd"><span class="av" id="dav"></span><b>ドット絵をかく</b><span class="dur"><button type="button" id="dun" aria-label="戻る">↶</button><button type="button" id="dre" aria-label="進む">↷</button></span></div>
  <canvas id="dcv" class="dcv"></canvas><div class="dtools" id="dtools"></div><div class="dpal" id="dpal"></div>
  <div class="cbtn"><button id="dno" class="pk" type="button">やめる</button><button id="dok" class="big" type="button">決定</button></div></div></div>
@@ -222,7 +232,7 @@ else{
 const S={now:null,queue:[],recent:[],members:{},pos:{}};
 let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='';
 const now=()=>Date.now()+off;
-const me=()=>({name:ls('name')||'',color:ls('color')||COLORS[0],icon:ls('icon')||''});
+const me=()=>({name:ls('name')||'',color:ls('color')||COLORS[0],icon:ls('icon')||'',dots:ls('dots')||''});
 const nameOf=id=>id===cid?me().name:((S.members[id]||{}).name||'');
 const colorOf=id=>((S.members[id]||{}).color)||COLORS[7];
 
@@ -281,12 +291,13 @@ function dotEdit(grid0,bg){return new Promise(res=>{const ov=$('dz'),cv=$('dcv')
   setTool('pen');pal();paintUR();draw();});}
 
 function paintDot(d,name,color,icon){d.textContent=icon?'':String(name||'?').slice(0,1);d.classList.toggle('img',!!icon);d.style.backgroundColor=color||COLORS[7];d.style.backgroundSize='cover';d.style.backgroundPosition='center';if(icon)d.style.backgroundImage='url("'+icon+'")';else d.style.backgroundImage='';}
-function askName(cb){const ov=$('ov'),nm=$('nm'),cols=$('cols');nm.value=ls('name')||'';let col=ls('color')||COLORS[Math.floor(Math.random()*7)];let icon=ls('icon')||'';let dots=null;try{dots=JSON.parse(ls('dots')||'null');}catch(_){}
+function askName(cb,inRoom){const ov=$('ov'),nm=$('nm'),cols=$('cols');nm.value=ls('name')||'';let col=ls('color')||COLORS[Math.floor(Math.random()*7)];let icon=ls('icon')||'';let dots=null;try{dots=JSON.parse(ls('dots')||'null');}catch(_){}
   const av=$('av'),pv=()=>{paintDot(av,nm.value.trim()||'?',col,icon);$('noimg').hidden=!icon;};
   $('dbtn').onclick=()=>dotEdit(dots,col).then(r=>{if(!r)return;dots=r.grid;icon=r.icon;pv();});
   $('noimg').onclick=()=>{icon='';dots=null;pv();};nm.oninput=pv;
   cols.textContent='';COLORS.slice(0,7).forEach(c=>{const b=btn(c===col?'on':'',null,()=>{col=c;if(dots&&icon)icon=dotIcon(dots,col);[...cols.children].forEach(x=>x.classList.toggle('on',x===b));});b.style.background=c;b.setAttribute('aria-label','色');b.addEventListener('click',pv);cols.append(b);});pv();
   const go=()=>{const v=nm.value.trim().slice(0,12);if(!v){nm.focus();return;}ls('name',v);ls('color',col);ls('icon',icon||null);ls('dots',icon&&dots?JSON.stringify(dots):null);ov.hidden=true;cb();};
+  const lv=$('leave');lv.hidden=!inRoom;lv.onclick=leave;
   $('enter').onclick=go;nm.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}};ov.hidden=false;setTimeout(()=>nm.focus(),50);}
 
 // ===== YouTube =====
@@ -362,15 +373,28 @@ function addList(list,mode,bs){bs.forEach(b=>b.disabled=true);err='';paint();
     .catch(e=>{err=(e&&e.message)||'再生リストを読み込めませんでした。';}).finally(()=>{bs.forEach(b=>b.disabled=false);paint();});}
 function addRecent(vid,t){if(!ref||!vid)return;ref.child('recent').transaction(c=>{const a=arr(c).filter(x=>x.vid!==vid);a.unshift({vid,title:t||'',d:md()});return a.slice(0,12);});}
 
+// 部屋にいることを知らせる（閉じたら灰色）
+function reg(){if(!ref)return;const m=ref.child('members/'+cid),v=me();
+  m.onDisconnect().update({on:false,at:firebase.database.ServerValue.TIMESTAMP});
+  m.update({name:v.name,color:v.color,icon:v.icon||null,dots:v.dots||null,on:true,at:firebase.database.ServerValue.TIMESTAMP});}
+// 同じ名前の人がもういたら、その人として入る（アイコンと色も引き継ぐ）
+let wantMerge=true;
+function merge(){const nm=(ls('name')||'').trim();if(!nm)return;
+  const hit=Object.entries(S.members).find(([id,m])=>id!==cid&&m&&String(m.name||'').trim()===nm);if(!hit)return;
+  const [id,m]=hit,old=cid;cid=id;ls('cid',id);try{ref.child('members/'+old).onDisconnect().cancel();}catch(_){}ref.child('members/'+old).remove();
+  if(m.color)ls('color',m.color);ls('icon',m.icon||null);ls('dots',m.dots||null);reg();}
+let leaving=false,seenSelf=false;
+function leave(){leaving=true;if(!ref){location.reload();return;}const m=ref.child('members/'+cid);try{m.onDisconnect().cancel();}catch(_){}
+  ls('name',null);Promise.resolve(m.remove()).then(()=>location.reload(),()=>location.reload());}
 function start(){
   const app=firebase.apps.find(a=>a.name==='party')||firebase.initializeApp({apiKey:'AIzaSyCmHJLuKoEXS2lYhl6d-ms2N0Xa3ExiF0s',authDomain:'kikohouse-943cf.firebaseapp.com',projectId:'kikohouse-943cf',appId:'1:340471681800:web:0868f848740206b4a812bd',databaseURL:DB},'party');
   const db=app.database();ref=db.ref('party/'+ROOM);
   db.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0;});
-  db.ref('.info/connected').on('value',s=>{if(!s.val())return;const m=ref.child('members/'+cid);const v=me();
-    m.onDisconnect().update({on:false,at:firebase.database.ServerValue.TIMESTAMP});m.update({name:v.name,color:v.color,icon:v.icon||null,on:true,at:firebase.database.ServerValue.TIMESTAMP});});
+  db.ref('.info/connected').on('value',s=>{if(s.val())reg();});
   ref.child('p').on('value',s=>{const v=s.val()||{};S.now=v.now&&v.now.vid?v.now:null;S.queue=arr(v.queue);apply();paint();});
   ref.child('recent').on('value',s=>{S.recent=arr(s.val());paintLists();});
-  ref.child('members').on('value',s=>{S.members=s.val()||{};paint();});
+  ref.child('members').on('value',s=>{S.members=s.val()||{};if(wantMerge){wantMerge=false;merge();}
+    if(S.members[cid])seenSelf=true;else if(seenSelf&&!leaving){leaving=true;ls('name',null);location.reload();return;}paint();});
   ref.child('pos').on('value',s=>{const v=s.val();S.pos=v&&typeof v==='object'?v:{};paintLists();});
 }
 
@@ -416,8 +440,14 @@ function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
   const d=P&&ready&&n?(P.getDuration()||0):0,c=P&&ready&&n&&n.vid===loaded?(P.getCurrentTime()||0):exp(n);
   bar.max=Math.max(1,Math.floor(d));bar.value=d?Math.min(bar.max,Math.floor(c)):0;bar.style.setProperty('--p',(d?Math.min(100,c/d*100):0)+'%');bar.disabled=!n;
   $('cur').textContent=fmt(c);$('dur').textContent=d?fmt(d):'0:00';}
+// ほかの人を部屋から出す
+function kick(id,m){const ov=el('div','ov'),sh=el('div','sheet kick'),d=el('i','dot');paintDot(d,m.name,m.color,m.icon);
+  const hd=el('div','khd');hd.append(d,el('b',null,m.name||''));
+  const bs=el('div','cbtn');bs.append(btn('pk','やめる',()=>ov.remove()),btn('big','退出させる',()=>{ov.remove();if(ref)ref.child('members/'+id).remove();}));
+  sh.append(hd,bs);ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 function chip(id,m){const c=el('span','chip'+(m.on?'':' off')),d=el('i','dot');paintDot(d,m.name,m.color,m.icon);c.append(d,document.createTextNode(m.name||''));
-  if(id===cid){c.title='名前を変える';c.style.cursor='pointer';c.addEventListener('click',()=>askName(()=>{const v=me();ref&&ref.child('members/'+cid).update({name:v.name,color:v.color,icon:v.icon||null});}));}return c;}
+  if(id===cid){c.title='名前を変える';c.style.cursor='pointer';c.addEventListener('click',()=>askName(()=>{const v=me();if(ref)Promise.resolve(ref.child('members/'+cid).update({name:v.name,color:v.color,icon:v.icon||null,dots:v.dots||null})).then(()=>{wantMerge=true;merge();wantMerge=false;});},true));}
+  else{c.style.cursor='pointer';c.addEventListener('click',()=>kick(id,m));}return c;}
 function paint(){if(!$('mem'))return;const n=S.now;
   $('err').textContent=err;$('err').hidden=!err;
   const mem=$('mem');mem.textContent='';const ms=Object.entries(S.members).filter(([,m])=>m&&m.name);
