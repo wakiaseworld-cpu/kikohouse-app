@@ -627,7 +627,9 @@ function openFind(q){
     const f=el('div','frow mini'),fi=el('input');fi.type='search';fi.enterKeyHint='search';fi.placeholder='さがしたい言葉';fi.autocomplete='off';
     const sb=btn('fnd','検索',()=>run());f.append(fi,sb);const res=el('div','sres');res.id='sres';
     sh.append(hd,f,res);ov.append(sh);document.body.append(ov);
-    const ref2=()=>{fitSoon();setTimeout(fitSoon,350);setTimeout(fitSoon,800);};fi.addEventListener('focus',ref2);fi.addEventListener('blur',ref2);
+    const ref2=()=>{fitSoon();setTimeout(fitSoon,350);setTimeout(fitSoon,800);};fi.addEventListener('blur',ref2);
+    // キーボードが出たあと、動画が見えていなかったら1回だけページを動かして見せる
+    fi.addEventListener('focus',()=>{ref2();[450,900].forEach(t=>setTimeout(()=>{if(document.activeElement!==fi)return;const st=$('wrap');if(!st)return;const vv=window.visualViewport,vt=vv?vv.offsetTop:0;const d=st.getBoundingClientRect().top-vt-8;if(Math.abs(d)>12){window.scrollBy(0,d);fitSoon();}},t));});
     fi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fi.blur();run();}});
     const run=()=>{const q=fi.value.trim();if(!q){fi.focus();return;}if(vidOf(q)||listOf(q)){fi.value='';ov.hidden=true;const U=$('uin');U.value=q;U.focus();return;}if(!SEARCH)return;
       sb.disabled=true;res.textContent='';res.append(el('div','sinfo','探しています…'));fitSoon();
