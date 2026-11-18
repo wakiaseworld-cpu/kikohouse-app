@@ -237,6 +237,9 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .glow{animation:glw 1.1s ease-in-out infinite!important}
 @keyframes glw{0%,100%{filter:none}50%{filter:drop-shadow(0 0 6px #ff5fae) drop-shadow(0 0 12px #ffb6da) brightness(1.08)}}
 #pp:disabled{opacity:.45}
+#pp.glow{animation:glw 1.1s ease-in-out infinite,bnc 1.1s ease-in-out infinite!important}
+@keyframes bnc{0%,100%{transform:translateY(0) scale(1)}40%{transform:translateY(-6px) scale(1.06)}60%{transform:translateY(0) scale(1)}}
+@keyframes glw{0%,100%{filter:drop-shadow(0 0 4px #ffb6da)}50%{filter:drop-shadow(0 0 10px #ff5fae) drop-shadow(0 0 20px #ff8cc6) brightness(1.1)}}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
@@ -270,7 +273,7 @@ let cid=ls('cid');if(!cid){cid='c'+Math.random().toString(36).slice(2,10)+Date.n
 if(!ROOM){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>もらったURLから開いてください</div>';}
 else{
 const S={now:null,queue:[],recent:[],members:{},pos:{}};
-let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='',pre=false,perr=null,conn=true,ldAt=0,fixN=0,fixT=0,wAt=0;
+let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='',pre=false,perr=null,conn=true,ldAt=0,fixN=0,fixT=0,wAt=0,rlAt=0;
 const now=()=>Date.now()+off;
 const me=()=>({name:ls('name')||'',color:ls('color')||COLORS[0],icon:ls('icon')||'',dots:ls('dots')||''});
 const nameOf=id=>id===cid?me().name:((S.members[id]||{}).name||'');
@@ -357,9 +360,10 @@ function make(host){const win=host.ownerDocument.defaultView;ready=false;loaded=
   return yt(win).then(Y=>{host.textContent='';const d=win.document.createElement('div');host.append(d);
     P=new Y.Player(d,{width:'100%',height:'100%',playerVars:Object.assign(ls('cc')==='1'?{cc_lang_pref:'ja'}:{},{playsinline:1,rel:0,modestbranding:1,hl:'ja',cc_load_policy:ls('cc')==='1'?1:0,controls:iOS||ls('ytc')==='1'?1:0,fs:iOS||ls('ytc')==='1'?1:0,disablekb:ls('ytc')==='1'?0:1}),
       events:{onReady:()=>{ready=true;vol();sound();apply();paint();},onStateChange:onState,onError:e=>{perr={vid:loaded,code:e&&e.data};paint();}}});},e=>{err=e.message;paint();});}
-// 位置がずれたら合わせ直す。2回合わせてもだめなら（iPhoneで飛ばせないとき）、みんなをこっちの位置にそろえる
+// 位置がずれたら合わせ直す
 function fixPos(cur){const n=S.now,t=Date.now();if(!n||!P)return;if(t-fixT>15000)fixN=0;fixT=t;
-  if(fixN<2){fixN++;applying=t+1500;try{P.seekTo(exp(n),true);}catch(_){}}else{fixN=0;setNow({state:'play',pos:cur,ended:false});}}
+  // みんなは動かさず、ずれた自分だけ合わせる。飛んでも合わなければ、みんなの位置から読み込み直す（15秒に1回まで）
+  if(fixN<2){fixN++;applying=t+1500;try{P.seekTo(exp(n),true);}catch(_){}}else if(t-rlAt>15000){fixN=0;rlAt=t;applying=t+2500;try{P.loadVideoById({videoId:n.vid,startSeconds:exp(n)});}catch(_){}}}
 function markReady(){const n=S.now;if(!n||n.state!=='wait'||(n.rd&&n.rd[cid]))return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.rd=c.now.rd||{};if(c.now.rd[cid])return false;c.now.rd[cid]=true;return true;});}
 function checkStart(){const n=S.now;if(!n||n.state!=='wait'||!ref)return;
