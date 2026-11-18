@@ -171,6 +171,7 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 @keyframes glw{0%,100%{filter:drop-shadow(0 0 4px #ffb6da)}50%{filter:drop-shadow(0 0 10px #ff5fae) drop-shadow(0 0 20px #ff8cc6) brightness(1.1)}}
 .srch{margin-top:8px}.srch button.ai{border-color:#4ab8ef!important;text-shadow:0 1px 0 rgba(255,255,255,.7);background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,.15) 50%,transparent 51%),#8fdcff!important;box-shadow:0 3px 0 #2b9ad6!important}
 .mini+.mini{margin-top:8px}
+.tright{display:flex;gap:6px;align-items:center}
 .lnk,.tg.on,.mini button.go,.ic.go,.dtools button.on{color:#0d4f7a!important;text-shadow:0 1px 0 rgba(255,255,255,.7)!important}
 .url .hlp{flex:none;width:46px;height:46px;padding:0!important;font-size:19px}
 .htabs{display:flex;gap:8px;margin:2px 0 8px}.htabs .tg{flex:1;padding:9px 0}
@@ -527,7 +528,7 @@ function start(){
 function build(){const A=$('app');A.textContent='';
   const top=el('div','top'),lg=el('div','logo');lg.append(el('i'),document.createTextNode('動画同時視聴'));
   const cp=btn('lnk','URLをコピー',()=>{const u=location.href;(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{cp.textContent='コピーできました';setTimeout(()=>cp.textContent='URLをコピー',1800);},()=>{prompt('URL',u);});});
-  top.append(lg,cp);
+  const hb=btn('lnk hlp2','説明書',openHelp);const tr=el('div','tright');tr.append(hb,cp);top.append(lg,tr);
   const er=el('div','err');er.id='err';
   const M=el('div','card');const mem=el('div','mem');mem.id='mem';M.append(mem);
   const PC=el('div','card'),wrap=el('div','wrap'),stage=el('div','stage');stage.id='stage';wrap.id='wrap';const stt=el('div','stat');stt.id='stat';stt.hidden=true;const cov=el('div','cover');cov.id='cover';const hint=el('i','fshint');hint.hidden=true;let hintT=0;
@@ -569,7 +570,7 @@ function build(){const A=$('app');A.textContent='';
   mini.append(btn('go','今すぐ',()=>go('now')),btn('','次に',()=>go('next')),btn('','後で',()=>go('last')));
   // さがす：下から出る画面（動画は上に見えたまま）
   
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});const hb=btn('tg hlp','📖',openHelp);hb.setAttribute('aria-label','使い方');u.append(hb,inp);AD.append(u,mini);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});u.append(inp);AD.append(u,mini);
   const Q=el('div','card');Q.id='q';const R=el('div','card');R.id='r';
   A.append(top,er,M,PC,AD,Q,R);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
@@ -596,7 +597,7 @@ function paint(){if(!$('mem'))return;const n=S.now;paintStat();
   if(pip){const q=pip.document.getElementById('pq');if(q)q.textContent=n&&n.state==='play'?'⏸':'▶';}
   paintTime();paintLists();}
 // 使い方（説明書）：iPhone と iPhone以外 でタブを分ける
-function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd=el('div','fhd');hd.append(el('b',null,'📖 使い方'),btn('ic','✕',()=>ov.remove()));sh.append(hd);
+function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd=el('div','fhd');hd.append(el('b',null,'説明書'),btn('ic','✕',()=>ov.remove()));sh.append(hd);
   const tb=el('div','htabs'),bx=el('div','hbody');sh.append(tb,bx);
   const paint=dev=>{ls('hdev',dev);[...tb.children].forEach(b=>b.classList.toggle('on',b.dataset.d===dev));bx.textContent='';const I=dev==='i';
     const S2=(t,L)=>{const d=el('details','hsec');d.append(el('summary',null,t));const ul=el('ul');L.forEach(x=>{const li=el('li');String(x).split(/(\[PIP\]|\[AP\])/).forEach(p=>{if(p==='[AP]'){const k=el('span','pipic');k.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-label="AirPlayボタン"><path d="M7 17H5a2.5 2.5 0 0 1-2.5-2.5v-8A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 19 17h-2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M12 13.5l5 6.5H7z" fill="#fff"/></svg>';li.append(k);return;}if(p==='[PIP]'){const k=el('span','pipic');k.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-label="小窓ボタン"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" fill="none" stroke="#fff" stroke-width="1.8"/><rect x="12" y="11.5" width="7.5" height="6" rx="1.2" fill="#fff"/><path d="M6 8l4 4M6 8v3M6 8h3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>';li.append(k);return;}li.append(p);});ul.append(li);});d.append(ul);bx.append(d);};
