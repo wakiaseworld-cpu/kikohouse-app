@@ -100,6 +100,18 @@ h2+.row{border-top:0}
 .cstage:after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.55);pointer-events:none}
 .czr{width:100%;accent-color:var(--ink)}
 .cbtn{display:flex;gap:10px;margin-top:14px}.cbtn .pk{flex:1;padding:14px}.cbtn .big{flex:2}
+.dsheet{max-height:100%;overflow:auto}
+.dhd{display:flex;align-items:center;gap:12px;margin-bottom:12px}.dhd b{font-size:17px;flex:1}
+.dhd .av{background-size:cover;background-position:center;image-rendering:pixelated}
+.dur{display:flex;gap:6px}.dur button{width:42px;height:42px;border:0;border-radius:14px;background:#ffeaf0;font-size:20px;font-weight:800;color:var(--ink)}.dur button:disabled{opacity:.35}
+.dcv{display:block;width:min(86vw,360px);aspect-ratio:1;margin:0 auto;border-radius:18px;box-shadow:0 0 0 2px #ffdbe3;touch-action:none;image-rendering:pixelated;background:#fff}
+.dtools{display:flex;gap:6px;margin:14px 0 10px}.dtools button{flex:1;border:0;background:#ffeaf0;border-radius:14px;padding:9px 0;font-weight:800;font-size:12px;color:var(--ink);white-space:nowrap}
+.dtools button.on{background:var(--ink);color:#fff}
+.dpal{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:14px}
+.dpal button,.dpal .plus{aspect-ratio:1;border-radius:50%;border:0;box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.08);padding:0}
+.dpal button.on{outline:3px solid var(--red);outline-offset:2px}
+.dpal .plus{display:grid;place-items:center;cursor:pointer;background:conic-gradient(#ff5f6d,#ffc371,#f9f871,#59d99d,#4fb3ff,#a77bff,#ff5f6d);color:#fff;font-weight:800;font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.dot.img,.av{image-rendering:pixelated}
 .nokey{text-align:center;padding:90px 24px;color:var(--mut)}
 .nokey b{display:block;color:var(--ink);font-size:22px;margin-bottom:8px}
 
@@ -137,12 +149,12 @@ h2:before{content:"♡ ";color:var(--red)}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
- <div class="pick"><span class="av" id="av"></span><label class="pk">画像を選ぶ<input type="file" id="file" accept="image/*" hidden></label><button type="button" class="pk off" id="noimg">画像を外す</button></div>
+ <div class="pick"><span class="av" id="av"></span><button type="button" class="pk" id="dbtn">ドット絵をかく</button><button type="button" class="pk off" id="noimg">消す</button></div>
  <input id="nm" maxlength="12" placeholder="名前" autocomplete="nickname"><div class="cols" id="cols"></div>
  <button class="big" id="enter" type="button">入る</button></div></div>
-<div class="ov cr" id="cr" hidden><div class="sheet"><div class="cstage" id="cs"><img id="ci" alt=""></div>
- <input type="range" id="cz" class="czr" min="1" max="4" step="0.01" value="1" aria-label="大きさ">
- <div class="cbtn"><button id="cno" class="pk" type="button">やめる</button><button id="cok" class="big" type="button">決定</button></div></div></div>
+<div class="ov cr" id="dz" hidden><div class="sheet dsheet"><div class="dhd"><span class="av" id="dav"></span><b>ドット絵をかく</b><span class="dur"><button type="button" id="dun" aria-label="戻る">↶</button><button type="button" id="dre" aria-label="進む">↷</button></span></div>
+ <canvas id="dcv" class="dcv"></canvas><div class="dtools" id="dtools"></div><div class="dpal" id="dpal"></div>
+ <div class="cbtn"><button id="dno" class="pk" type="button">やめる</button><button id="dok" class="big" type="button">決定</button></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
@@ -176,30 +188,61 @@ const colorOf=id=>((S.members[id]||{}).color)||COLORS[7];
 // アイコン：選んだ画像の真ん中を正方形に切りぬいて 96px の jpeg にする（データベースに置くので小さく）
 function shrink(file){return new Promise((ok,ng)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const z=Math.min(im.naturalWidth,im.naturalHeight),c=document.createElement('canvas');c.width=c.height=96;
   c.getContext('2d').drawImage(im,(im.naturalWidth-z)/2,(im.naturalHeight-z)/2,z,z,0,0,96,96);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.8));};im.onerror=()=>{URL.revokeObjectURL(u);ng();};im.src=u;});}
-// トリミング：丸い枠の中で動かす（ドラッグ）・大きさを変える（バー・2本指・ホイール）。決定で 96px に切りぬく
-function crop(file){return new Promise(res=>{const u=URL.createObjectURL(file),im=$('ci'),cs=$('cs'),cz=$('cz');
-  im.onerror=()=>{URL.revokeObjectURL(u);res(null);};
-  im.onload=()=>{$('cr').hidden=false;const S=cs.clientWidth,iw=im.naturalWidth,ih=im.naturalHeight,base=S/Math.min(iw,ih);let z=1,ox=(S-iw*base)/2,oy=(S-ih*base)/2;cz.value=1;
-    const draw=()=>{const sc=base*z;ox=Math.min(0,Math.max(S-iw*sc,ox));oy=Math.min(0,Math.max(S-ih*sc,oy));im.style.width=iw+'px';im.style.transform='translate('+ox+'px,'+oy+'px) scale('+sc+')';};
-    const zoomTo=(nz,cx,cy)=>{nz=Math.min(4,Math.max(1,nz));const k=nz/z;ox=cx-(cx-ox)*k;oy=cy-(cy-oy)*k;z=nz;cz.value=z;draw();};
-    draw();const pts=new Map();let d0=0,z0=1;
-    cs.onpointerdown=e=>{try{cs.setPointerCapture(e.pointerId);}catch(_){}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2){const [a,b]=[...pts.values()];d0=Math.hypot(a.x-b.x,a.y-b.y)||1;z0=z;}};
-    cs.onpointermove=e=>{const p=pts.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(pts.size===1){ox+=dx;oy+=dy;draw();}else if(pts.size===2){const [a,b]=[...pts.values()],r=cs.getBoundingClientRect();zoomTo(z0*Math.hypot(a.x-b.x,a.y-b.y)/d0,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);}};
-    cs.onpointerup=cs.onpointercancel=e=>{pts.delete(e.pointerId);if(pts.size===1){z0=z;}};
-    cs.onwheel=e=>{e.preventDefault();const r=cs.getBoundingClientRect();zoomTo(z*(e.deltaY<0?1.1:1/1.1),e.clientX-r.left,e.clientY-r.top);};
-    cz.oninput=()=>zoomTo(Number(cz.value),S/2,S/2);
-    const end=v=>{$('cr').hidden=true;URL.revokeObjectURL(u);cs.onpointerdown=cs.onpointermove=cs.onpointerup=cs.onpointercancel=cs.onwheel=null;res(v);};
-    $('cno').onclick=()=>end(null);
-    $('cok').onclick=()=>{const sc=base*z,c=document.createElement('canvas');c.width=c.height=96;c.getContext('2d').drawImage(im,-ox/sc,-oy/sc,S/sc,S/sc,0,0,96,96);end(c.toDataURL('image/jpeg',.8));};};
-  im.src=u;});}
+// ===== ドット絵エディタ（24×24）：ペン・消しゴム・ぬりつぶし・動かす（なぞって移動／2本指・ホイールで大きさ）・全部消す・戻る／進む・カラーチャート =====
+const N=24,PAL=['#ffffff','#4b3f57','#a093ab','#ff7a99','#ffb3c6','#ffb48a','#ffe08a','#f6c453','#9fe2bf','#5cc9a7','#8ec5ff','#4f9ad8','#c9a7ff','#8b6bd8','#b07a57','#e5554f'];
+function dotIcon(g,bg){if(!g||!g.some(Boolean))return '';const c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');x.fillStyle=bg||COLORS[7];x.fillRect(0,0,96,96);
+  for(let i=0;i<N*N;i++)if(g[i]){x.fillStyle=g[i];x.fillRect(i%N*4,Math.floor(i/N)*4,4,4);}return c.toDataURL('image/png');}
+function dotEdit(grid0,bg){return new Promise(res=>{const ov=$('dz'),cv=$('dcv'),ctx=cv.getContext('2d'),av=$('dav');
+  let g=(Array.isArray(grid0)&&grid0.length===N*N?grid0:new Array(N*N).fill('')).slice(),tool='pen',color=ls('pen')||PAL[1],undo=[],redo=[],mv=null;
+  let mine=[];try{mine=JSON.parse(ls('mycols')||'[]');}catch(_){}
+  const snap=()=>{undo.push(g.slice());if(undo.length>50)undo.shift();redo=[];paintUR();};
+  const paintUR=()=>{$('dun').disabled=!undo.length;$('dre').disabled=!redo.length;};
+  const draw=()=>{const S=cv.width,c=S/N;ctx.clearRect(0,0,S,S);
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){ctx.fillStyle=g[y*N+x]||(((x+y)&1)?'#f4eef0':'#ffffff');ctx.fillRect(x*c,y*c,c,c);}
+    ctx.strokeStyle='rgba(160,147,171,.25)';ctx.lineWidth=1;ctx.beginPath();for(let i=1;i<N;i++){ctx.moveTo(i*c+.5,0);ctx.lineTo(i*c+.5,S);ctx.moveTo(0,i*c+.5);ctx.lineTo(S,i*c+.5);}ctx.stroke();
+    const ic=dotIcon(g,bg);av.style.backgroundColor=bg;av.style.backgroundImage=ic?'url("'+ic+'")':'';};
+  // 動かす：始めたときの絵（src）を覚えて、位置（tx,ty マス）と大きさ（sc）から毎回つくり直す。ほかの道具に変えたら決まる
+  const mvRender=()=>{const {src,tx,ty,sc}=mv,h=N/2;for(let y=0;y<N;y++)for(let x=0;x<N;x++){const sx=Math.floor((x+.5-h-tx)/sc+h),sy=Math.floor((y+.5-h-ty)/sc+h);g[y*N+x]=sx>=0&&sx<N&&sy>=0&&sy<N?src[sy*N+sx]:'';}draw();};
+  const mvStart=()=>{if(!mv){mv={src:g.slice(),tx:0,ty:0,sc:1,saved:false};}if(!mv.saved){snap();mv.saved=true;}};
+  const mvEnd=()=>{mv=null;};
+  const setTool=t=>{if(tool==='move'&&t!=='move')mvEnd();tool=t;[...$('dtools').children].forEach(b=>b.classList.toggle('on',b.dataset.t===tool));};
+  const cell=e=>{const r=cv.getBoundingClientRect();return [Math.floor((e.clientX-r.left)/r.width*N),Math.floor((e.clientY-r.top)/r.height*N)];};
+  const put=(x,y)=>{if(x<0||y<0||x>=N||y>=N)return;g[y*N+x]=tool==='erase'?'':color;};
+  const line=(a,b)=>{const n=Math.max(Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1]),1);for(let i=0;i<=n;i++)put(Math.round(a[0]+(b[0]-a[0])*i/n),Math.round(a[1]+(b[1]-a[1])*i/n));};
+  const fill=(x,y)=>{if(x<0||y<0||x>=N||y>=N)return;const t=g[y*N+x];if(t===color)return;const st=[[x,y]];while(st.length){const [a,b]=st.pop();if(a<0||b<0||a>=N||b>=N||g[b*N+a]!==t)continue;g[b*N+a]=color;st.push([a+1,b],[a-1,b],[a,b+1],[a,b-1]);}};
+  const pts=new Map();let last=null,d0=0,sc0=1;
+  cv.onpointerdown=e=>{e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(_){}pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(tool==='move'){mvStart();if(pts.size===2){const [a,b]=[...pts.values()];d0=Math.hypot(a.x-b.x,a.y-b.y)||1;sc0=mv.sc;}return;}
+    if(pts.size>1)return;snap();const c=cell(e);if(tool==='fill'){fill(c[0],c[1]);draw();return;}put(c[0],c[1]);last=c;draw();};
+  cv.onpointermove=e=>{const p=pts.get(e.pointerId);if(!p)return;e.preventDefault();const dx=e.clientX-p.x,dy=e.clientY-p.y;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(tool==='move'&&mv){const r=cv.getBoundingClientRect(),k=N/r.width;if(pts.size===1){mv.tx+=dx*k;mv.ty+=dy*k;}else if(pts.size===2){const [a,b]=[...pts.values()];mv.sc=Math.min(8,Math.max(.1,sc0*Math.hypot(a.x-b.x,a.y-b.y)/d0));}mvRender();return;}
+    if((tool==='pen'||tool==='erase')&&last&&pts.size===1){const c=cell(e);line(last,c);last=c;draw();}};
+  cv.onpointerup=cv.onpointercancel=e=>{pts.delete(e.pointerId);last=null;if(mv&&pts.size===1)sc0=mv.sc;};
+  cv.onwheel=e=>{if(tool!=='move')return;e.preventDefault();mvStart();mv.sc=Math.min(8,Math.max(.1,mv.sc*(e.deltaY<0?1.08:1/1.08)));mvRender();};
+  // 道具
+  const T=$('dtools');T.textContent='';[['pen','ペン'],['erase','消しゴム'],['fill','ぬりつぶし'],['move','動かす']].forEach(([k,t])=>{const b=btn('',t,()=>setTool(k));b.dataset.t=k;T.append(b);});
+  T.append(btn('','全部消す',()=>{mvEnd();if(!g.some(Boolean))return;snap();g.fill('');draw();}));
+  $('dun').onclick=()=>{mvEnd();if(!undo.length)return;redo.push(g.slice());g=undo.pop();draw();paintUR();};
+  $('dre').onclick=()=>{mvEnd();if(!redo.length)return;undo.push(g.slice());g=redo.pop();draw();paintUR();};
+  // 色
+  const pal=()=>{const P=$('dpal');P.textContent='';PAL.concat(mine).forEach((c,i)=>{const b=btn(c===color?'on':'',null,()=>{color=c;ls('pen',c);if(tool==='erase'||tool==='move')setTool('pen');pal();});b.style.background=c;b.setAttribute('aria-label','色');
+      if(i>=PAL.length){let t=0;b.addEventListener('pointerdown',()=>{t=setTimeout(()=>{mine=mine.filter(x=>x!==c);ls('mycols',JSON.stringify(mine));if(color===c)color=PAL[1];pal();},650);});['pointerup','pointerleave','pointercancel'].forEach(v=>b.addEventListener(v,()=>clearTimeout(t)));}
+      P.append(b);});
+    const plus=el('label','plus','＋'),inp=el('input');inp.type='color';inp.value=color.length===7?color:'#ff7a99';inp.hidden=true;
+    inp.addEventListener('change',()=>{const c=inp.value;mine=[c].concat(mine.filter(x=>x!==c)).slice(0,8);ls('mycols',JSON.stringify(mine));color=c;ls('pen',c);if(tool==='erase'||tool==='move')setTool('pen');pal();});
+    plus.append(inp);P.append(plus);};
+  const end=v=>{ov.hidden=true;cv.onpointerdown=cv.onpointermove=cv.onpointerup=cv.onpointercancel=cv.onwheel=null;res(v);};
+  $('dno').onclick=()=>end(null);$('dok').onclick=()=>{mvEnd();end({grid:g.slice(),icon:dotIcon(g,bg)});};
+  ov.hidden=false;const px=Math.round(cv.getBoundingClientRect().width*(window.devicePixelRatio||1));cv.width=cv.height=Math.max(240,Math.min(960,px||480));
+  setTool('pen');pal();paintUR();draw();});}
+
 function paintDot(d,name,color,icon){d.textContent=icon?'':String(name||'?').slice(0,1);d.classList.toggle('img',!!icon);d.style.backgroundColor=color||COLORS[7];d.style.backgroundSize='cover';d.style.backgroundPosition='center';if(icon)d.style.backgroundImage='url("'+icon+'")';else d.style.backgroundImage='';}
-function askName(cb){const ov=$('ov'),nm=$('nm'),cols=$('cols');nm.value=ls('name')||'';let col=ls('color')||COLORS[Math.floor(Math.random()*7)];let icon=ls('icon')||'';
+function askName(cb){const ov=$('ov'),nm=$('nm'),cols=$('cols');nm.value=ls('name')||'';let col=ls('color')||COLORS[Math.floor(Math.random()*7)];let icon=ls('icon')||'';let dots=null;try{dots=JSON.parse(ls('dots')||'null');}catch(_){}
   const av=$('av'),pv=()=>{paintDot(av,nm.value.trim()||'?',col,icon);$('noimg').hidden=!icon;};
-  $('file').onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;crop(f).then(d=>{if(d){icon=d;pv();}});};
-  $('noimg').onclick=()=>{icon='';pv();};nm.oninput=pv;
-  cols.textContent='';COLORS.slice(0,7).forEach(c=>{const b=btn(c===col?'on':'',null,()=>{col=c;[...cols.children].forEach(x=>x.classList.toggle('on',x===b));});b.style.background=c;b.setAttribute('aria-label','色');b.addEventListener('click',pv);cols.append(b);});pv();
-  const go=()=>{const v=nm.value.trim().slice(0,12);if(!v){nm.focus();return;}ls('name',v);ls('color',col);ls('icon',icon||null);ov.hidden=true;cb();};
+  $('dbtn').onclick=()=>dotEdit(dots,col).then(r=>{if(!r)return;dots=r.grid;icon=r.icon;pv();});
+  $('noimg').onclick=()=>{icon='';dots=null;pv();};nm.oninput=pv;
+  cols.textContent='';COLORS.slice(0,7).forEach(c=>{const b=btn(c===col?'on':'',null,()=>{col=c;if(dots&&icon)icon=dotIcon(dots,col);[...cols.children].forEach(x=>x.classList.toggle('on',x===b));});b.style.background=c;b.setAttribute('aria-label','色');b.addEventListener('click',pv);cols.append(b);});pv();
+  const go=()=>{const v=nm.value.trim().slice(0,12);if(!v){nm.focus();return;}ls('name',v);ls('color',col);ls('icon',icon||null);ls('dots',icon&&dots?JSON.stringify(dots):null);ov.hidden=true;cb();};
   $('enter').onclick=go;nm.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}};ov.hidden=false;setTimeout(()=>nm.focus(),50);}
 
 // ===== YouTube =====
@@ -281,7 +324,6 @@ function build(){const A=$('app');A.textContent='';
   const er=el('div','err');er.id='err';
   const M=el('div','card');const mem=el('div','mem');mem.id='mem';M.append(mem);
   const PC=el('div','card'),wrap=el('div','wrap'),stage=el('div','stage');stage.id='stage';wrap.id='wrap';wrap.append(stage,el('div','pipnote','小窓で再生中'));
-  const tap=btn('tap','再生する',()=>{late=true;applying=0;if(forced){forced=false;stuck=0;sound();}else stuck=0;try{P.playVideo();}catch(_){}apply();paint();});tap.id='tap';tap.hidden=true;
   const tt=el('div','ttl');tt.id='ttl';const by=el('div','by');by.id='by';
   const bar=el('input','bar');bar.id='bar';bar.type='range';bar.min=0;bar.max=1;bar.step=1;bar.value=0;
   bar.addEventListener('input',()=>{drag=true;$('cur').textContent=fmt(bar.value);});
@@ -289,7 +331,10 @@ function build(){const A=$('app');A.textContent='';
   const tm=el('div','tm'),c1=el('span',null,'0:00'),c2=el('span',null,'0:00');c1.id='cur';c2.id='dur';tm.append(c1,c2);
   const cur=()=>P&&ready?(P.getCurrentTime()||0):exp(S.now);
   const skip=d=>{if(!S.now)return;const p=Math.max(0,cur()+d);if(P&&ready){applying=Date.now()+1500;P.seekTo(p,true);}setNow({pos:p,ended:false});};
+  // 自分だけ止まっているとき（ブラウザに止められたとき）は、みんなを止めずに自分だけ追いつく
+  const localPlay=()=>P&&ready&&P.getPlayerState&&[1,3].indexOf(P.getPlayerState())>=0;
   const pp=btn('pp',null,()=>{const n=S.now;if(!n)return;
+    if(n.state==='play'&&P&&ready&&!localPlay()){late=true;applying=0;stuck=0;try{P.playVideo();}catch(_){}apply();paint();return;}
     if(n.state==='play'){if(P&&ready){applying=Date.now()+1500;P.pauseVideo();}setNow({state:'pause',pos:cur()});savePos();}
     else{if(P&&ready){applying=Date.now()+1500;P.playVideo();}setNow({state:'play',pos:n.ended?0:cur(),ended:false});}});pp.id='pp';pp.setAttribute('aria-label','再生／一時停止');
   const ppw=el('span','ppw'),bd=el('span','badge');bd.id='badge';bd.hidden=true;ppw.append(pp,bd);
@@ -298,10 +343,10 @@ function build(){const A=$('app');A.textContent='';
   const opt=el('div','opt');
   if(!iOS){const v=el('label','vol');v.append(el('span',null,'音量'));const r=el('input');r.type='range';r.min=0;r.max=100;r.step=1;const v0=Number(ls('vol'));r.value=ls('vol')===null||isNaN(v0)?80:v0;
     r.addEventListener('input',()=>{ls('vol',r.value);if(Number(r.value)>0&&ls('mute')==='1'){ls('mute',0);sound();paint();}vol();});v.append(r);opt.append(v);}
-  const tg=el('div','tog'),mu=btn('tg','消音',()=>{ls('mute',ls('mute')==='1'?0:1);sound();paint();});mu.id='mute';
+  const tg=el('div','tog'),mu=btn('tg','消音',()=>{if(forced){forced=false;ls('mute',0);}else ls('mute',ls('mute')==='1'?0:1);sound();if(ls('mute')!=='1'&&S.now&&S.now.state==='play'&&P&&ready){try{P.playVideo();}catch(_){}}paint();});mu.id='mute';
   const ccb=btn('tg','字幕',()=>{cc(ls('cc')!=='1');paint();});ccb.id='cc';tg.append(mu,ccb);
   if(window.documentPictureInPicture){const pb=btn('tg','小窓',pipToggle);pb.id='pipb';tg.append(pb);}opt.append(tg);
-  PC.append(wrap,tap,tt,by,bar,tm,ctl,opt);
+  PC.append(wrap,tt,by,bar,tm,ctl,opt);
   const AD=el('div','card'),u=el('div','url'),inp=el('input');inp.type='url';inp.placeholder='YouTubeのURL';inp.autocomplete='off';
   const mini=el('div','mini');
   const go=m=>{const pl=listOf(inp.value);if(pl){inp.value='';addList(pl,m,[...mini.querySelectorAll('button')]);return;}const id=vidOf(inp.value);if(!id){inp.focus();inp.select();return;}inp.value='';add(id,m);if(m==='now'&&P&&ready){try{P.playVideo();}catch(_){}}};
@@ -321,10 +366,9 @@ function paint(){if(!$('mem'))return;const n=S.now;
   const day=864e5*30;ms.filter(([id,m])=>m.on||id===cid||now()-(m.at||0)<day).sort((a,b)=>(b[1].on?1:0)-(a[1].on?1:0)||(b[1].at||0)-(a[1].at||0)).forEach(([id,m])=>mem.append(chip(id,m)));
   $('ttl').textContent=n?(n.title||'　'):'';$('ttl').hidden=!n;
   const an=n&&n.add?nameOf(n.add):'';$('by').textContent=an?an+'が追加':'';
-  const pp=$('pp');pp.classList.toggle('on',!!n&&n.state==='play');pp.disabled=!n;
+  const lp=P&&ready&&P.getPlayerState?[1,3].indexOf(P.getPlayerState())>=0:true;const pp=$('pp');pp.classList.toggle('on',!!n&&n.state==='play'&&(lp||!ready));pp.disabled=!n;
   const bd=$('badge'),bn=n&&n.state!=='play'&&!n.ended?nameOf(n.by):'';bd.hidden=!bn;bd.textContent='';if(bn){const m=n.by===cid?me():(S.members[n.by]||{});const d=el('i','dot');paintDot(d,bn,m.color,m.icon);bd.append(d,document.createTextNode(bn));}
-  const play1=P&&ready&&P.getPlayerState&&P.getPlayerState()===1,tp=$('tap');tp.hidden=!(n&&n.state==='play'&&!pip&&(forced||stuck>=3&&!play1));tp.textContent=forced&&play1?'音を出す':'再生する';
-  $('wrap').classList.toggle('pip',!!pip);$('mute').classList.toggle('on',ls('mute')==='1');$('cc').classList.toggle('on',ls('cc')==='1');const pb=$('pipb');if(pb)pb.classList.toggle('on',!!pip);
+  $('wrap').classList.toggle('pip',!!pip);$('mute').classList.toggle('on',ls('mute')==='1'||forced);$('cc').classList.toggle('on',ls('cc')==='1');const pb=$('pipb');if(pb)pb.classList.toggle('on',!!pip);
   paintTime();paintLists();}
 function row(it,acts,sub){const r=el('div','row');r.dataset.vid=it.vid;const im=el('img','th');im.src=thumb(it.vid);im.alt='';im.loading='lazy';
   const t=el('div','tx');t.append(el('div','rn',it.title||'YouTube'));if(sub)t.append(el('div','rs',sub));const a=el('div','acts');acts.forEach(x=>a.append(x));r.append(im,t,a);return r;}
