@@ -186,6 +186,7 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .fhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.fhd b{color:#ff5fae;font-size:17px}
 .frow{display:flex;gap:8px;align-items:center}.frow input{flex:1;margin:0!important;min-width:0}.frow button{flex:none!important;padding:0 20px!important;height:46px}
 .fsheet.kb{padding-top:10px!important}.fsheet.kb .fhd{display:none}
+.sres .row.sadd .rn::before{content:'✅ ';}
 .fsheet .sres{flex:1;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
 .sres{margin-top:10px}.sres .sinfo{text-align:center;color:#e07fb3;font-size:13px;padding:10px 0}
 .sres .shd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;color:#c23d87}
@@ -637,7 +638,7 @@ function openFind(q){
         res.textContent='';
         if(j.error){res.append(el('div','sinfo',j.error==='limit'?'今日はもう探せません。明日また使えます':/KEY/.test(j.error)?'鍵がまだ入っていません':'うまく探せませんでした'));return;}
         const items=j.items||[];if(!items.length){res.append(el('div','sinfo','見つかりませんでした'));return;}
-        items.forEach(it=>{const r=row({vid:it.vid,title:it.title},[btn('ic go','▶',()=>{autoPip();tapLoad(it.vid,0);add(it.vid,'now',it.title);}),btn('ic','次に',()=>add(it.vid,'next',it.title)),btn('ic','後で',()=>add(it.vid,'last',it.title))],it.ch||'');
+        items.forEach(it=>{let r;const ok=()=>{r.classList.add('sadd');};const r0=row({vid:it.vid,title:it.title},[btn('ic go','▶',()=>{ok();autoPip();tapLoad(it.vid,0);add(it.vid,'now',it.title);}),btn('ic','次に',()=>{ok();add(it.vid,'next',it.title);}),btn('ic','後で',()=>{ok();add(it.vid,'last',it.title);})],it.ch||'');r=r0;if(inList(it.vid))ok();
           const mt=[it.views?nV(it.views)+'回':'',it.at?ago(it.at):''].filter(Boolean).join('・');const mtd=el('div','rs smeta',mt);if(mt||it.desc)r.querySelector('.tx').append(mtd);
           const im=r.querySelector('.th');if(it.sec){const w=el('span','thw');im.replaceWith(w);w.append(im,el('span','dur',hms(it.sec)));}
           res.append(r);if(it.desc){const d=el('div','sdesc',it.desc);d.hidden=true;res.append(d);r.classList.add('stap');mtd.append(el('span','sarr','▾'));r.addEventListener('click',e=>{if(e.target.closest('button'))return;d.hidden=!d.hidden;mtd.lastChild.textContent=d.hidden?'▾':'▴';});}});
@@ -646,6 +647,7 @@ function openFind(q){
     FD={ov,fi,run,res};}
   FD.ov.hidden=false;fitFind(true);
   if(q){FD.fi.value=q;FD.run();}else if(!FD.fi.value)FD.fi.focus();}
+function inList(v){return !!(S.now&&S.now.vid===v)||S.queue.some(x=>x&&x.vid===v);}
 function hms(t){t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),x=String(t%60).padStart(2,'0');return h?h+':'+String(m).padStart(2,'0')+':'+x:m+':'+x;}
 function nV(n){return n>=1e8?(n/1e8).toFixed(n<1e9?1:0).replace(/\.0$/,'')+'億':n>=1e4?(n/1e4).toFixed(n<1e5?1:0).replace(/\.0$/,'')+'万':String(n);}
 function ago(a){const d=(Date.now()-Date.parse(a))/864e5;if(!(d>=0))return '';return d<1?'今日':d<30?Math.floor(d)+'日前':d<365?Math.floor(d/30)+'か月前':Math.floor(d/365)+'年前';}
