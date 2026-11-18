@@ -233,6 +233,10 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .ttcover{position:absolute;left:0;top:0;width:72%;height:64px;z-index:2}.ttcover[hidden]{display:none}.lgcover[hidden]{display:none}
 .fshint{position:absolute;right:4px;bottom:62px;width:42px;height:42px;border-radius:50%;border:3px dashed #ff8cc6;z-index:4;pointer-events:none;box-sizing:border-box;animation:fsh 1s ease-in-out infinite}
 .fshint[hidden]{display:none}@keyframes fsh{50%{opacity:.3;transform:scale(.9)}}
+.stat .sbox small{font-size:12px;color:#e07fb3}
+.glow{animation:glw 1.1s ease-in-out infinite!important}
+@keyframes glw{0%,100%{filter:none}50%{filter:drop-shadow(0 0 6px #ff5fae) drop-shadow(0 0 12px #ffb6da) brightness(1.08)}}
+#pp:disabled{opacity:.45}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
@@ -266,7 +270,7 @@ let cid=ls('cid');if(!cid){cid='c'+Math.random().toString(36).slice(2,10)+Date.n
 if(!ROOM){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>もらったURLから開いてください</div>';}
 else{
 const S={now:null,queue:[],recent:[],members:{},pos:{}};
-let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='',pre=false,perr=null,conn=true,ldAt=0,fixN=0,fixT=0;
+let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='',pre=false,perr=null,conn=true,ldAt=0,fixN=0,fixT=0,wAt=0;
 const now=()=>Date.now()+off;
 const me=()=>({name:ls('name')||'',color:ls('color')||COLORS[0],icon:ls('icon')||'',dots:ls('dots')||''});
 const nameOf=id=>id===cid?me().name:((S.members[id]||{}).name||'');
@@ -359,25 +363,29 @@ function fixPos(cur){const n=S.now,t=Date.now();if(!n||!P)return;if(t-fixT>15000
 function markReady(){const n=S.now;if(!n||n.state!=='wait'||(n.rd&&n.rd[cid]))return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.rd=c.now.rd||{};if(c.now.rd[cid])return false;c.now.rd[cid]=true;return true;});}
 function checkStart(){const n=S.now;if(!n||n.state!=='wait'||!ref)return;
+  if(P&&ready&&loaded===n.vid&&!pre&&Date.now()-wAt>1500)markReady();
   const on=Object.entries(S.members).filter(([,m])=>m&&m.on).map(([id])=>id);if(!on.includes(cid))on.push(cid);const rd=n.rd||{};
   if(!on.every(id=>rd[id])&&now()-(n.at||0)<15000)return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.state='play';c.now.at=now();delete c.now.rd;return true;});}
 // 動画のところに今の状態を出す（黒い画面のままにしない）
+// 流れていないあいだは「今どうなっているか」と「どうしたらいいか」を出して、押すボタンを光らせる
 function paintStat(){const el2=$('stat');if(!el2)return;const n=S.now;let st=null;try{st=P&&ready?P.getPlayerState():null;}catch(_){}
-  let t='',bg=false,spin=false,mini=false,who=false;
-  if(pip){}else if(!conn){t='つながっていません';bg=!(st===1||st===2);}
-  else if(perr&&n&&perr.vid===n.vid){t=perr.code===101||perr.code===150?'この動画はここでは流せません':perr.code===100?'動画が見つかりません':'読み込めませんでした';bg=true;}
-  else if(!n){}
-  else if(n.state==='wait'){t='みんなの読み込み待ち';bg=true;spin=true;who=true;}
-  else if(n.ended){t='おわり';bg=true;}
-  else if(n.state==='play'){if(st!==1){if(stuck>=3&&st!==3){t='▶ で再生';mini=true;}else{t='読み込み中';spin=true;bg=st!==2;}}}
-  else if(n.state==='pause'){t='一時停止中';bg=st===null||st===-1||st===5;mini=!bg;}
+  let t='',sub='',bg=false,spin=false,mini=false,who=false,glow='';
+  if(pip){}else if(!conn){t='つながっていません';sub='電波を確認してね';bg=!(st===1||st===2);}
+  else if(perr&&n&&perr.vid===n.vid){t=perr.code===101||perr.code===150?'この動画はここでは流せません':perr.code===100?'動画が見つかりません':'読み込めませんでした';sub='⏭ で次へ';bg=true;glow='next';}
+  else if(!n){t='YouTubeのURLを貼ってね';bg=true;glow='url';}
+  else if(n.state==='wait'){t='みんなを待っています（あと'+Math.max(0,15-Math.floor((now()-(n.at||0))/1000))+'秒）';bg=true;spin=true;who=true;}
+  else if(n.ended){t='おわり';sub='次の動画を追加してね';bg=true;glow='url';}
+  else if(n.state==='play'){if(st!==1){if(stuck>=3&&st!==3){t='▶ を押してね';mini=true;glow='pp';}else{t='読み込み中';sub='そのまま待ってね';spin=true;bg=st!==2;}}
+    else if(forced){t='音なし：消音を押すと音が出ます';mini=true;glow='mute';}}
+  else if(n.state==='pause'){t=(n.by===cid?'自分':nameOf(n.by)||'だれか')+'が止めました';sub='続きは ▶';bg=st===null||st===-1||st===5;mini=!bg;glow='pp';}
   // 読み込み中のまま10秒たったら読み込み直す
   if(t==='読み込み中'&&!document.hidden&&(st===3||st===-1||st===null)){if(!ldAt)ldAt=Date.now();else if(Date.now()-ldAt>10000){ldAt=Date.now();loaded='';apply();}}else ldAt=0;
+  const gl={pp:$('pp'),next:document.querySelector('.k.next'),url:$('uin'),mute:$('mute')};Object.entries(gl).forEach(([k,e])=>{if(e)e.classList.toggle('glow',k===glow);});
   el2.hidden=!t;if(!t)return;el2.classList.toggle('bg',bg);el2.classList.toggle('mini',mini);
   el2.style.backgroundImage=bg&&n?'url("'+thumb(n.vid)+'")':'';
-  const k=[t,spin,who,who?JSON.stringify(n.rd||{})+Object.keys(S.members).join():''].join('|');if(el2.dataset.k===k)return;el2.dataset.k=k;
-  el2.textContent='';const box=el('div','sbox');if(spin)box.append(el('i','spin'));box.append(el('span',null,t));
+  const k=[t,sub,spin,who,who?JSON.stringify(n.rd||{})+Object.keys(S.members).join():''].join('|');if(el2.dataset.k===k)return;el2.dataset.k=k;
+  el2.textContent='';const box=el('div','sbox');if(spin)box.append(el('i','spin'));box.append(el('span',null,t));if(sub)box.append(el('small',null,sub));
   if(who){const w=el('div','swho'),rd=n.rd||{};Object.entries(S.members).filter(([id,m])=>m&&(m.on||id===cid)).forEach(([id,m])=>{const d=el('i','dot'+(rd[id]?' ok':''));paintDot(d,m.name,m.color,m.icon);w.append(d);});box.append(w);}
   el2.append(box);}
 setInterval(()=>{checkStart();paintStat();},1000);
@@ -385,7 +393,7 @@ function apply(){const n=S.now;if(!P||!ready)return;
   if(!n){if(loaded){loaded='';applying=Date.now()+1500;try{P.stopVideo();}catch(_){}}return;}
   const want=exp(n);
   if(loaded!==n.vid){loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;
-    if(n.state==='wait'){pre=true;try{P.mute();}catch(_){}P.loadVideoById({videoId:n.vid,startSeconds:want});return;}
+    if(n.state==='wait'){wAt=Date.now();if(iOS){pre=false;P.cueVideoById({videoId:n.vid,startSeconds:want});return;}pre=true;try{P.mute();}catch(_){}P.loadVideoById({videoId:n.vid,startSeconds:want});return;}
     if(pre){pre=false;sound();}
     if(n.state==='play')P.loadVideoById({videoId:n.vid,startSeconds:want});else P.cueVideoById({videoId:n.vid,startSeconds:want});return;}
   if(n.state==='wait'){if(!pre){const s2=P.getPlayerState();if(s2===1||s2===3){applying=Date.now()+1500;P.pauseVideo();}markReady();}return;}
@@ -442,6 +450,8 @@ function pipOpen(){if(pip||!window.documentPictureInPicture)return;
     D.body.append(h,c);try{P&&P.destroy();}catch(_){}P=null;$('stage').textContent='';make(h);paint();
     w.addEventListener('pagehide',()=>{let t=null;try{t=P&&ready?P.getCurrentTime():null;}catch(_){}pip=null;try{P&&P.destroy();}catch(_){}P=null;
       const n=S.now;if(n&&n.state!=='play'&&t!=null&&Math.abs(t-(n.pos||0))>1.5)setNow({pos:t});make($('stage'));paint();});}).catch(()=>{});}
+// タップしたその場で自分の画面に読み込む（iPhoneはタップの中で始めた動画だけ流せる）
+function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;P.loadVideoById({videoId:vid,startSeconds:pos||0});}catch(_){}}
 const autoPip=()=>{if(ls('apip')==='1')pipOpen();};
 
 // ===== データ =====
@@ -514,7 +524,7 @@ function build(){const A=$('app');A.textContent='';
   const skip=d=>{if(!S.now)return;const p=Math.max(0,cur()+d);if(P&&ready){applying=Date.now()+1500;P.seekTo(p,true);}setNow({pos:p,ended:false});};
   // 自分だけ止まっているとき（ブラウザに止められたとき）は、みんなを止めずに自分だけ追いつく
   const localPlay=()=>P&&ready&&P.getPlayerState&&[1,3].indexOf(P.getPlayerState())>=0;
-  const pp=btn('pp',null,()=>{const n=S.now;if(!n)return;if(n.state!=='play')autoPip();
+  const pp=btn('pp',null,()=>{const n=S.now;if(!n||n.state==='wait')return;if(n.state!=='play')autoPip();
     if(n.state==='play'&&P&&ready&&!localPlay()){late=true;applying=0;stuck=0;try{P.playVideo();}catch(_){}apply();paint();return;}
     if(n.state==='play'){if(P&&ready){applying=Date.now()+1500;P.pauseVideo();}setNow({state:'pause',pos:cur()});savePos();}
     else{if(P&&ready){applying=Date.now()+1500;P.playVideo();}setNow({state:'play',pos:n.ended?0:cur(),ended:false});}});pp.id='pp';pp.setAttribute('aria-label','再生／一時停止');
@@ -522,11 +532,11 @@ function build(){const A=$('app');A.textContent='';
   const ctl=el('div','ctl');// ⏮：3秒たっていたら最初へ、始まってすぐなら前の動画へ（今の動画は「次に再生」の先頭へ）
   const toTop=n=>{if(P&&ready){applying=Date.now()+1500;P.seekTo(0,true);}setNow({pos:0,ended:false,state:n.ended?'pause':n.state});};
   const prev=()=>{const n=S.now;if(!n)return;if(!n.ended&&cur()>3)return toTop(n);const pv=S.recent.find(x=>x&&x.vid&&x.vid!==n.vid);if(!pv)return toTop(n);
-    savePos();const v=n.vid;tx(c=>{if(!c.now||c.now.vid!==v)return false;c.queue.unshift({vid:c.now.vid,title:c.now.title||'',by:c.now.add||cid});c.now=fresh(pv.vid,pv.title,cid,0);return true;});
+    savePos();const v=n.vid;tapLoad(pv.vid,0);tx(c=>{if(!c.now||c.now.vid!==v)return false;c.queue.unshift({vid:c.now.vid,title:c.now.title||'',by:c.now.add||cid});c.now=fresh(pv.vid,pv.title,cid,0);return true;});
     if(ref)ref.child('recent').transaction(c=>arr(c).filter(x=>x&&x.vid!==v));};
   const pb0=btn('k ico prev',null,prev);pb0.setAttribute('aria-label','前へ');
   ctl.append(pb0,btn('k','-10',()=>skip(-10)),ppw,btn('k','+10',()=>skip(10)),
-    (b=>{b.setAttribute('aria-label','次へ');return b;})(btn('k ico next',null,()=>{const v=S.now&&S.now.vid;tx(c=>{if(!c.now||c.now.vid!==v)return false;const nx=c.queue.shift();if(!nx)return false;savePos();c.now=fresh(nx.vid,nx.title,nx.by||cid,0);return true;});})));
+    (b=>{b.setAttribute('aria-label','次へ');return b;})(btn('k ico next',null,()=>{const v=S.now&&S.now.vid;if(S.queue[0])tapLoad(S.queue[0].vid,0);tx(c=>{if(!c.now||c.now.vid!==v)return false;const nx=c.queue.shift();if(!nx)return false;savePos();c.now=fresh(nx.vid,nx.title,nx.by||cid,0);return true;});})));
   const opt=el('div','opt');
   if(!iOS){const v=el('label','vol');v.append(el('span',null,'音量'));const r=el('input');r.type='range';r.min=0;r.max=100;r.step=1;const v0=Number(ls('vol'));r.value=ls('vol')===null||isNaN(v0)?80:v0;
     r.addEventListener('input',()=>{ls('vol',r.value);if(Number(r.value)>0&&ls('mute')==='1'){ls('mute',0);sound();paint();}vol();});v.append(r);opt.append(v);}
@@ -535,9 +545,9 @@ function build(){const A=$('app');A.textContent='';
   if(window.documentPictureInPicture){const pb=btn('tg','小窓',pipToggle);pb.id='pipb';tg.append(pb);}tg.append(btn('tg','全画面',fsToggle));opt.append(tg);
   const sl=btn('slnk','詳細設定',openSet);
   PC.append(wrap,tt,by,bar,tm,ctl,opt,sl);
-  const AD=el('div','card'),u=el('div','url'),inp=el('input');inp.type='url';inp.placeholder='YouTubeのURL';inp.autocomplete='off';
+  const AD=el('div','card'),u=el('div','url'),inp=el('input');inp.type='url';inp.id='uin';inp.placeholder='YouTubeのURL';inp.autocomplete='off';
   const mini=el('div','mini');
-  const go=m=>{if(m==='now'||!S.now||S.now.ended)autoPip();const pl=listOf(inp.value);if(pl){inp.value='';addList(pl,m,[...mini.querySelectorAll('button')]);return;}const id=vidOf(inp.value);if(!id){inp.focus();inp.select();return;}inp.value='';add(id,m);if(m==='now'&&P&&ready){try{P.playVideo();}catch(_){}}};
+  const go=m=>{if(m==='now'||!S.now||S.now.ended)autoPip();const pl=listOf(inp.value);if(pl){inp.value='';addList(pl,m,[...mini.querySelectorAll('button')]);return;}const id=vidOf(inp.value);if(!id){inp.focus();inp.select();return;}inp.value='';if(m==='now'||!S.now||S.now.ended)tapLoad(id,0);add(id,m);if(m==='now'&&P&&ready){try{P.playVideo();}catch(_){}}};
   mini.append(btn('go','今すぐ',()=>go('now')),btn('','次に',()=>go('next')),btn('','後で',()=>go('last')));
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go('now');}});u.append(inp);AD.append(u,mini);
   const Q=el('div','card');Q.id='q';const R=el('div','card');R.id='r';
@@ -560,8 +570,8 @@ function paint(){if(!$('mem'))return;const n=S.now;paintStat();
   const day=864e5*30;ms.filter(([id,m])=>m.on||id===cid||now()-(m.at||0)<day).sort((a,b)=>(b[1].on?1:0)-(a[1].on?1:0)||(b[1].at||0)-(a[1].at||0)).forEach(([id,m])=>mem.append(chip(id,m)));
   $('ttl').textContent=n?(n.title||'　'):'';$('ttl').hidden=!n;
   const an=n&&n.add?nameOf(n.add):'';$('by').textContent=an?an+'が追加':'';
-  const lp=P&&ready&&P.getPlayerState?[1,3].indexOf(P.getPlayerState())>=0:true;const pp=$('pp');pp.classList.toggle('on',!!n&&n.state==='play'&&(lp||!ready));pp.disabled=!n;
-  const bd=$('badge'),bn=n&&n.state!=='play'&&!n.ended?nameOf(n.by):'';bd.hidden=!bn;bd.textContent='';if(bn){const m=n.by===cid?me():(S.members[n.by]||{});const d=el('i','dot');paintDot(d,bn,m.color,m.icon);bd.append(d,document.createTextNode(bn));}
+  const lp=P&&ready&&P.getPlayerState?[1,3].indexOf(P.getPlayerState())>=0:true;const pp=$('pp');pp.classList.toggle('on',!!n&&n.state==='play'&&(lp||!ready));pp.disabled=!n||n.state==='wait';
+  const bd=$('badge'),bn=n&&n.state==='pause'&&!n.ended?nameOf(n.by):'';bd.hidden=!bn;bd.textContent='';if(bn){const m=n.by===cid?me():(S.members[n.by]||{});const d=el('i','dot');paintDot(d,bn,m.color,m.icon);bd.append(d,document.createTextNode(bn));}
   $('wrap').classList.toggle('pip',!!pip);$('mute').classList.toggle('on',ls('mute')==='1'||forced);$('cc').classList.toggle('on',ls('cc')==='1');const pb=$('pipb');if(pb)pb.classList.toggle('on',!!pip);$('cover').hidden=ls('ytc')==='1'||!!pip;$('lgc').hidden=$('ttc').hidden=!(ls('ytc')==='1')||!!pip;$('cover').classList.toggle('hole',iOS);
   if(pip){const q=pip.document.getElementById('pq');if(q)q.textContent=n&&n.state==='play'?'⏸':'▶';}
   paintTime();paintLists();}
@@ -571,9 +581,9 @@ function paintLists(){const Q=$('q'),R=$('r');if(!Q)return;if(qDrag){paintLists.
   Q.append(el('h2',null,'次に再生'));if(!S.queue.length)Q.append(el('div','empty','まだありません'));
   S.queue.forEach((it,i)=>{const hd=el('span','hd','≡');hd.setAttribute('aria-label','並べかえ');
     const r=row(it,[btn('ic','✕',()=>tx(c=>{if(!c.queue[i]||c.queue[i].vid!==it.vid)return false;c.queue.splice(i,1);return true;})),hd],nameOf(it.by));
-    r.querySelector('.tx').addEventListener('click',()=>{autoPip();tx(c=>{const k=c.queue.findIndex(x=>x.vid===it.vid);if(k<0)return false;savePos();const nx=c.queue.splice(k,1)[0];c.now=fresh(nx.vid,nx.title,nx.by||cid,0);return true;});});Q.append(r);});
+    r.querySelector('.tx').addEventListener('click',()=>{autoPip();tapLoad(it.vid,0);tx(c=>{const k=c.queue.findIndex(x=>x.vid===it.vid);if(k<0)return false;savePos();const nx=c.queue.splice(k,1)[0];c.now=fresh(nx.vid,nx.title,nx.by||cid,0);return true;});});Q.append(r);});
   R.hidden=!S.recent.length;R.append(el('h2',null,'最近見た動画'));
-  S.recent.slice(0,3).forEach(it=>{const p=Number(S.pos[it.vid])||0;R.append(row(it,[btn('ic go','▶',()=>{autoPip();add(it.vid,'now',it.title,p);}),btn('ic','次に',()=>add(it.vid,'next',it.title))],(it.d||'')+(p>5?'　'+fmt(p)+'から':'')));});
+  S.recent.slice(0,3).forEach(it=>{const p=Number(S.pos[it.vid])||0;R.append(row(it,[btn('ic go','▶',()=>{autoPip();tapLoad(it.vid,p);add(it.vid,'now',it.title,p);}),btn('ic','次に',()=>add(it.vid,'next',it.title))],(it.d||'')+(p>5?'　'+fmt(p)+'から':'')));});
 }
 function dragInit(Q){let r=null,from=-1;const rows=()=>[...Q.querySelectorAll('.row')];
   Q.addEventListener('pointerdown',e=>{const h=e.target.closest('.hd');if(!h)return;r=h.closest('.row');from=rows().indexOf(r);qDrag=true;r.classList.add('drag');try{h.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});
