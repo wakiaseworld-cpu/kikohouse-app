@@ -253,11 +253,11 @@ html,body{background-color:#eef4fc!important;background-image:radial-gradient(#f
 
 /* パソコン（横に広い画面）：左に動画、右にメンバー・追加・リスト。さがす画面は右側に出す */
 @media (min-width:1000px){
-  .w{max-width:1440px!important;display:grid;grid-template-columns:minmax(0,1fr) 380px;column-gap:20px;align-items:start;padding-left:20px!important;padding-right:20px!important;grid-auto-flow:row dense}
+  .w{max-width:1600px!important;display:grid;grid-template-columns:minmax(0,1fr) 340px;column-gap:20px;align-items:start;padding-left:20px!important;padding-right:20px!important;grid-auto-flow:row dense}
   .w>.g-top{grid-column:1/-1}
-  .w>.g-play{grid-column:1;grid-row:span 20;position:sticky;top:12px;margin:12px 0!important}
+  .w>.g-play{grid-column:1;grid-row:span 20;margin:12px 0!important}
   .w>.g-side{grid-column:2;margin:12px 0!important}
-  .w>.g-play .wrap{max-height:calc(100vh - 370px);aspect-ratio:16/9;width:auto;margin:0 auto}
+  .w>.g-play .wrap{width:min(100%,calc((100vh - 110px)*16/9));aspect-ratio:16/9;margin:0 auto}
   .fov{left:auto!important;right:20px!important;top:12px!important;bottom:12px!important;width:380px;align-items:stretch}
   .fov .fsheet{height:auto!important;border-radius:20px!important;max-height:none}
   .fsheet.kb .fhd{display:flex}
@@ -390,6 +390,8 @@ function fixPos(cur){const n=S.now,t=Date.now();if(!n||!P)return;if(t-fixT>15000
 function markReady(){const n=S.now;if(!n||n.state!=='wait'||(n.rd&&n.rd[cid]))return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.rd=c.now.rd||{};if(c.now.rd[cid])return false;c.now.rd[cid]=true;return true;});}
 function checkStart(){const n=S.now;if(!n||n.state!=='wait'||!ref)return;
+  // iPhoneで止められて流れ出さないときは、3秒で読み込めたことにする
+  if(iOS&&pre&&P&&ready&&loaded===n.vid&&Date.now()-wAt>3000){pre=false;sound();}
   if(P&&ready&&loaded===n.vid&&!pre&&Date.now()-wAt>1500)markReady();
   const on=Object.entries(S.members).filter(([,m])=>m&&m.on&&!m.bg).map(([id])=>id);if(!on.includes(cid))on.push(cid);const rd=n.rd||{};
   if(!on.every(id=>rd[id])&&(now()-(n.at||0)<15000||!on.some(id=>rd[id])))return;
@@ -421,7 +423,7 @@ function apply(){const n=S.now;if(!P||!ready)return;
   if(!n){if(loaded){loaded='';applying=Date.now()+1500;try{P.stopVideo();}catch(_){}}return;}
   const want=exp(n);
   if(loaded!==n.vid){loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;
-    if(n.state==='wait'){wAt=Date.now();if(iOS){pre=false;P.cueVideoById({videoId:n.vid,startSeconds:want});return;}pre=true;try{P.mute();}catch(_){}P.loadVideoById({videoId:n.vid,startSeconds:want});return;}
+    if(n.state==='wait'){wAt=Date.now();pre=true;try{P.mute();}catch(_){}P.loadVideoById({videoId:n.vid,startSeconds:want});return;}
     if(pre){pre=false;sound();}
     if(n.state==='play')P.loadVideoById({videoId:n.vid,startSeconds:want});else P.cueVideoById({videoId:n.vid,startSeconds:want});return;}
   if(n.state==='wait'){if(!pre){const s2=P.getPlayerState();if(s2===1||s2===3){applying=Date.now()+1500;P.pauseVideo();}markReady();}return;}
@@ -434,7 +436,7 @@ function apply(){const n=S.now;if(!P||!ready)return;
   if(n.state==='play'&&st!==1&&st!==3){applying=Date.now()+1500;P.playVideo();}
   if(n.state!=='play'&&(st===1||st===3)){applying=Date.now()+1500;P.pauseVideo();}}
 function onState(e){const st=e.data,n=S.now;
-  if(n&&n.state==='wait'&&n.vid===loaded){if(pre&&st===1){pre=false;applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}markReady();}paint();return;}
+  if(n&&n.state==='wait'&&n.vid===loaded){if(pre&&st===1){pre=false;applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}markReady();}else if(st===1&&Date.now()>=applying){applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}}paint();return;}
   if(st===1&&n&&n.vid===loaded&&late){late=false;stuck=0;if(n.state==='play'){const w=exp(n);if(Math.abs((P.getCurrentTime()||0)-w)>1.2){applying=Date.now()+1500;P.seekTo(w,true);}}}
   if(st===1&&n&&n.vid===loaded){stuck=0;if(ls('cc')!=='1'&&onState.cc!==n.vid+n.at){onState.cc=n.vid+n.at;try{P.unloadModule('captions');P.unloadModule('cc');}catch(_){}}const t=(P.getVideoData&&P.getVideoData().title)||'';
     if(t&&!n.title)tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.title)return false;c.now.title=t;return true;});
@@ -479,7 +481,10 @@ function pipOpen(){if(pip||!window.documentPictureInPicture)return;
     const mk=(id,t,f)=>{const b=D.createElement('button');b.type='button';if(id)b.id=id;b.textContent=t;b.addEventListener('click',f);return b;};
     const k=t=>[...document.querySelectorAll('.ctl .k')].find(b=>b.textContent===t);
     c.append(mk('','-10',()=>{const b=k('-10');b&&b.click();}),mk('pq','▶',()=>$('pp').click()),mk('','+10',()=>{const b=k('+10');b&&b.click();}));
-    D.body.append(h,c);try{P&&P.destroy();}catch(_){}P=null;$('stage').textContent='';make(h);paint();
+    D.body.append(h,c);try{P&&P.destroy();}catch(_){}P=null;$('stage').textContent='';
+    // 小窓の窓は about:blank なので、同じサイトの入れもの（pipframe.html）の中にプレーヤーを置く
+    const pf=D.createElement('iframe');pf.src=location.origin+'/kikohouse-app/pipframe.html';pf.allow='autoplay; encrypted-media; picture-in-picture';h.append(pf);
+    pf.addEventListener('load',()=>{if(pip!==w)return;const hh=pf.contentDocument&&pf.contentDocument.getElementById('h');if(hh)make(hh);paint();},{once:true});paint();
     w.addEventListener('pagehide',()=>{let t=null;try{t=P&&ready?P.getCurrentTime():null;}catch(_){}pip=null;putBg();try{P&&P.destroy();}catch(_){}P=null;
       const n=S.now;if(n&&n.state!=='play'&&t!=null&&Math.abs(t-(n.pos||0))>1.5)setNow({pos:t});make($('stage'));paint();});}).catch(()=>{});}
 // タップしたその場で自分の画面に読み込む（iPhoneはタップの中で始めた動画だけ流せる）
@@ -687,11 +692,11 @@ function dragInit(Q){let r=null,from=-1;const rows=()=>[...Q.querySelectorAll('.
   Q.addEventListener('pointerup',end);Q.addEventListener('pointercancel',end);}
 
 setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
-  if(!n||document.hidden&&!pip||Date.now()<applying||n.vid!==loaded||n.state==='play'&&(n.at||0)>now())return;const st=P.getPlayerState();
+  if(!n||document.hidden&&!pip&&!iOS||Date.now()<applying||n.vid!==loaded||n.state==='play'&&(n.at||0)>now())return;const st=P.getPlayerState();
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
   if(n.state==='play'&&st===1){const c0=P.getCurrentTime()||0;if(Math.abs(c0-exp(n))>1.2)fixPos(c0);else fixN=0;stuck=0;}
   else if(n.state==='play'&&st!==3){stuck++;late=true;if(stuck===2)P.playVideo();if(stuck===3){forced=true;try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}},1000);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip)applying=Date.now()+864e5;}else{applying=0;apply();}putBg();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip&&!iOS)applying=Date.now()+864e5;}else{applying=0;apply();}putBg();});
 
 const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();};
 const m0=me();
