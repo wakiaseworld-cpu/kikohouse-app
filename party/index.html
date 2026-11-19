@@ -250,6 +250,18 @@ h2{background:none!important;color:var(--ink)!important;clip-path:none!important
 body.fs .fsx,.wrap:fullscreen .fsx{background:rgba(0,0,0,.6)!important}
 .k.ico:after{filter:var(--icoF)!important}
 html,body{background-color:#eef4fc!important;background-image:radial-gradient(#fff 3px,transparent 3.5px),radial-gradient(#d3e4fa 3px,transparent 3.5px)!important;background-size:26px 26px!important;background-position:0 0,13px 13px!important}.k,.tg,.ic,.pk,.mini button,.lnk,.tg.on,.mini button.go,.ic.go,.big,.url input,.frow input,.sheet input,#nm{border-radius:999px!important}.card{border-radius:22px!important}
+
+/* パソコン（横に広い画面）：左に動画、右にメンバー・追加・リスト。さがす画面は右側に出す */
+@media (min-width:1000px){
+  .w{max-width:1440px!important;display:grid;grid-template-columns:minmax(0,1fr) 380px;column-gap:20px;align-items:start;padding-left:20px!important;padding-right:20px!important;grid-auto-flow:row dense}
+  .w>.g-top{grid-column:1/-1}
+  .w>.g-play{grid-column:1;grid-row:span 20;position:sticky;top:12px;margin:12px 0!important}
+  .w>.g-side{grid-column:2;margin:12px 0!important}
+  .w>.g-play .wrap{max-height:calc(100vh - 370px);aspect-ratio:16/9;width:auto;margin:0 auto}
+  .fov{left:auto!important;right:20px!important;top:12px!important;bottom:12px!important;width:380px;align-items:stretch}
+  .fov .fsheet{height:auto!important;border-radius:20px!important;max-height:none}
+  .fsheet.kb .fhd{display:flex}
+}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
@@ -379,7 +391,7 @@ function markReady(){const n=S.now;if(!n||n.state!=='wait'||(n.rd&&n.rd[cid]))re
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.rd=c.now.rd||{};if(c.now.rd[cid])return false;c.now.rd[cid]=true;return true;});}
 function checkStart(){const n=S.now;if(!n||n.state!=='wait'||!ref)return;
   if(P&&ready&&loaded===n.vid&&!pre&&Date.now()-wAt>1500)markReady();
-  const on=Object.entries(S.members).filter(([,m])=>m&&m.on).map(([id])=>id);if(!on.includes(cid))on.push(cid);const rd=n.rd||{};
+  const on=Object.entries(S.members).filter(([,m])=>m&&m.on&&!m.bg).map(([id])=>id);if(!on.includes(cid))on.push(cid);const rd=n.rd||{};
   if(!on.every(id=>rd[id])&&(now()-(n.at||0)<15000||!on.some(id=>rd[id])))return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.state='play';c.now.at=now()+1200;delete c.now.rd;return true;});}
 // 動画のところに今の状態を出す（黒い画面のままにしない）
@@ -402,7 +414,7 @@ function paintStat(){const el2=$('stat');if(!el2)return;const n=S.now;let st=nul
   el2.style.backgroundImage=bg&&n?'url("'+thumb(n.vid)+'")':'';
   const k=[t,sub,spin,who,who?JSON.stringify(n.rd||{})+Object.keys(S.members).join():''].join('|');if(el2.dataset.k===k)return;el2.dataset.k=k;
   el2.textContent='';const box=el('div','sbox');if(spin)box.append(el('i','spin'));box.append(el('span',null,t));if(sub)box.append(el('small',null,sub));
-  if(who){const w=el('div','swho'),rd=n.rd||{};Object.entries(S.members).filter(([id,m])=>m&&(m.on||id===cid)).forEach(([id,m])=>{const d=el('i','dot'+(rd[id]?' ok':''));paintDot(d,m.name,m.color,m.icon);w.append(d);});box.append(w);}
+  if(who){const w=el('div','swho'),rd=n.rd||{};Object.entries(S.members).filter(([id,m])=>m&&(m.on&&!m.bg||id===cid)).forEach(([id,m])=>{const d=el('i','dot'+(rd[id]?' ok':''));paintDot(d,m.name,m.color,m.icon);w.append(d);});box.append(w);}
   el2.append(box);}
 setInterval(()=>{checkStart();paintStat();},1000);
 function apply(){const n=S.now;if(!P||!ready)return;
@@ -433,9 +445,10 @@ function onState(e){const st=e.data,n=S.now;
       c.now=nx?fresh(nx.vid,nx.title,nx.by||cid,0):Object.assign({},c.now,{state:'pause',pos:end,ended:true,at:now(),by:cid});return true;});return;}
   if(Date.now()<applying||!n||n.vid!==loaded)return;
   const cur=P.getCurrentTime()||0;
-  if(st===1&&n.state==='play'&&iOS&&Math.abs(cur-exp(n))>2){fixPos(cur);return;}
-  if(st===1&&(n.state!=='play'||Math.abs(cur-exp(n))>2))setNow({state:'play',pos:cur,ended:false});
-  else if(st===2&&n.state==='play'){if(iOS){applying=Date.now()+1500;setTimeout(()=>{try{P&&P.playVideo();}catch(_){}},300);return;}setNow({state:'pause',pos:cur});savePos();}}
+  // このページのボタン以外（YouTubeの画面・iPhoneの全画面・キーボード・イヤホンなど）で止めたり動かしたりしても、みんなには伝えず、自分だけもとに戻す
+  if(st===1&&n.state==='play'&&Math.abs(cur-exp(n))>2){fixPos(cur);return;}
+  if(st===1&&n.state!=='play'){applying=Date.now()+1500;try{P.pauseVideo();if(Math.abs(cur-exp(n))>1)P.seekTo(exp(n),true);}catch(_){}return;}
+  if(st===2&&n.state==='play'){applying=Date.now()+1500;setTimeout(()=>{try{P&&P.playVideo();}catch(_){}},300);return;}}
 function sound(){if(!P||!ready)return;try{(!forced&&ls('mute')!=='1')?P.unMute():P.mute();}catch(_){}}
 function vol(){if(!P||!ready||iOS)return;const v=Number(ls('vol'));try{P.setVolume(ls('vol')===null||isNaN(v)?80:v);}catch(_){}}
 function cc(on){ls('cc',on?1:0);if(!P||!ready)return;try{if(on){P.loadModule('captions');setTimeout(()=>{try{const L=P.getOption('captions','tracklist')||[];const t=L.find(x=>/^ja/.test(x.languageCode))||L[0];if(t)P.setOption('captions','track',{languageCode:t.languageCode});}catch(_){}},900);}else P.unloadModule('captions');}catch(_){}}
@@ -457,7 +470,7 @@ function openSet(){const ov=el('div','ov'),sh=el('div','sheet sset');sh.append(e
   ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 function pipToggle(){if(pip){pip.close();return;}pipOpen();}
 function pipOpen(){if(pip||!window.documentPictureInPicture)return;
-  documentPictureInPicture.requestWindow({width:480,height:318}).then(w=>{pip=w;const D=w.document,st=D.createElement('style');
+  documentPictureInPicture.requestWindow({width:480,height:318}).then(w=>{pip=w;putBg();const D=w.document,st=D.createElement('style');
     st.textContent='html,body{margin:0;height:100%;background:#000;font-family:"Zen Maru Gothic",sans-serif}#h{position:fixed;left:0;right:0;top:0;bottom:48px}#h iframe{width:100%;height:100%;border:0}'+
       '#c{position:fixed;left:0;right:0;bottom:0;height:48px;display:flex;justify-content:center;align-items:center;gap:10px;background:#f4f4f6}'+
       '#c button{min-width:52px;height:34px;border:0;border-radius:10px;color:#222;font:700 14px "Zen Maru Gothic",sans-serif;cursor:pointer;background:#e4e4ea}#c #pq{background:#2f80ed;color:#fff}'+
@@ -467,7 +480,7 @@ function pipOpen(){if(pip||!window.documentPictureInPicture)return;
     const k=t=>[...document.querySelectorAll('.ctl .k')].find(b=>b.textContent===t);
     c.append(mk('','-10',()=>{const b=k('-10');b&&b.click();}),mk('pq','▶',()=>$('pp').click()),mk('','+10',()=>{const b=k('+10');b&&b.click();}));
     D.body.append(h,c);try{P&&P.destroy();}catch(_){}P=null;$('stage').textContent='';make(h);paint();
-    w.addEventListener('pagehide',()=>{let t=null;try{t=P&&ready?P.getCurrentTime():null;}catch(_){}pip=null;try{P&&P.destroy();}catch(_){}P=null;
+    w.addEventListener('pagehide',()=>{let t=null;try{t=P&&ready?P.getCurrentTime():null;}catch(_){}pip=null;putBg();try{P&&P.destroy();}catch(_){}P=null;
       const n=S.now;if(n&&n.state!=='play'&&t!=null&&Math.abs(t-(n.pos||0))>1.5)setNow({pos:t});make($('stage'));paint();});}).catch(()=>{});}
 // タップしたその場で自分の画面に読み込む（iPhoneはタップの中で始めた動画だけ流せる）
 function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;P.loadVideoById({videoId:vid,startSeconds:pos||0});}catch(_){}}
@@ -499,7 +512,9 @@ function addRecent(vid,t){if(!ref||!vid)return;ref.child('recent').transaction(c
 // 部屋にいることを知らせる（閉じたら灰色）
 function reg(){if(!ref)return;const m=ref.child('members/'+cid),v=me();
   m.onDisconnect().update({on:false,at:firebase.database.ServerValue.TIMESTAMP});
-  m.update({name:v.name,color:v.color,icon:v.icon||null,dots:v.dots||null,on:true,at:firebase.database.ServerValue.TIMESTAMP});}
+  m.update({name:v.name,color:v.color,icon:v.icon||null,dots:v.dots||null,on:true,bg:document.hidden&&!pip?true:null,at:firebase.database.ServerValue.TIMESTAMP});}
+// 画面を閉じている（ほかのアプリやタブを見ている）人は、読み込みを待たない
+function putBg(){if(!ref||!cid||leaving)return;try{ref.child('members/'+cid+'/bg').set(document.hidden&&!pip?true:null);}catch(_){}}
 // 同じ名前の人がもういたら、その人として入る（アイコンと色も引き継ぐ）
 let wantMerge=true;
 function merge(){const nm=(ls('name')||'').trim();if(!nm)return;
@@ -567,11 +582,12 @@ function build(){const A=$('app');A.textContent='';
   const AD=el('div','card'),u=el('div','url'),inp=el('input');inp.type='text';inp.enterKeyHint='go';inp.id='uin';inp.placeholder='URLを貼る';inp.autocomplete='off';
   const mini=el('div','mini');
   const go=m=>{if(m==='now'||!S.now||S.now.ended)autoPip();const pl=listOf(inp.value);if(pl){inp.value='';addList(pl,m,[...mini.querySelectorAll('button')]);return;}const id=vidOf(inp.value);if(!id){const v=inp.value.trim();if(v){inp.value='';openFind(v);}else inp.focus();return;}inp.value='';if(m==='now'||!S.now||S.now.ended)tapLoad(id,0);add(id,m);if(m==='now'&&P&&ready){try{P.playVideo();}catch(_){}}};
-  mini.append(btn('go','今すぐ',()=>go('now')),btn('','次に',()=>go('next')),btn('','後で',()=>go('last')));
+  mini.append(btn('go','今すぐ',()=>go('now')),btn('','次に再生',()=>go('next')),btn('','後で再生',()=>go('last')));
   // さがす：下から出る画面（動画は上に見えたまま）
   
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});u.append(inp);AD.append(u,mini);
   const Q=el('div','card');Q.id='q';const R=el('div','card');R.id='r';
+  top.classList.add('g-top');er.classList.add('g-top');M.classList.add('g-side');PC.classList.add('g-play');AD.classList.add('g-side');Q.classList.add('g-side');R.classList.add('g-side');
   A.append(top,er,M,PC,AD,Q,R);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
   const d=P&&ready&&n?(P.getDuration()||0):0,c=P&&ready&&n&&n.vid===loaded?(P.getCurrentTime()||0):exp(n);
@@ -602,18 +618,18 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
   const paint=dev=>{ls('hdev',dev);[...tb.children].forEach(b=>b.classList.toggle('on',b.dataset.d===dev));bx.textContent='';const I=dev==='i';
     const S2=(t,L)=>{const d=el('details','hsec');d.append(el('summary',null,t));const ul=el('ul');L.forEach(x=>{const li=el('li');String(x).split(/(\[PIP\]|\[AP\])/).forEach(p=>{if(p==='[AP]'){const k=el('span','pipic');k.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-label="AirPlayボタン"><path d="M7 17H5a2.5 2.5 0 0 1-2.5-2.5v-8A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 19 17h-2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M12 13.5l5 6.5H7z" fill="#fff"/></svg>';li.append(k);return;}if(p==='[PIP]'){const k=el('span','pipic');k.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-label="小窓ボタン"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" fill="none" stroke="#fff" stroke-width="1.8"/><rect x="12" y="11.5" width="7.5" height="6" rx="1.2" fill="#fff"/><path d="M6 8l4 4M6 8v3M6 8h3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>';li.append(k);return;}li.append(p);});ul.append(li);});d.append(ul);bx.append(d);};
     S2('友だちを呼ぶ',['右上の「URLをコピー」で、この部屋のURLを送る','前と同じ名前で入ると、同じ人として入れる（アイコンもそのまま）']);
-    S2('動画を追加する',['YouTubeのURLを貼って「今すぐ・次に・後で」','🔍 で言葉から探せる（1日95回まで）','プレイリストのURLなら、まとめて追加','「次に再生」は ≡ を持って並べかえられる']);
-    S2('再生のしかた',['▶ で再生・一時停止。みんなの画面も同じになる','-10 / +10 で10秒戻す・進める','⏮ 始まってすぐなら前の動画、それ以外は頭へ','⏭ 次の動画へ','新しい動画は、みんなが読み込めてからいっせいに始まる。待っているあいだは ▶ を押しても反応しない'].concat(I?['全画面で止めたり進めたりしても、もとの場所にもどる（みんなの動画は止まらない）']:[],['電波や操作で自分の動画だけ止まっても、みんなの動画は止まらない。自分の動画は自動で追いつく']));
+    S2('動画を追加する',['YouTubeのURLを貼って「今すぐ・次に再生・後で再生」','🔍 で言葉から探せる（1日95回まで）','プレイリストのURLなら、まとめて追加','「次に再生」は ≡ を持って並べかえられる']);
+    S2('再生のしかた',['▶ で再生・一時停止。みんなの画面も同じになる','-10 / +10 で10秒戻す・進める','⏮ 始まってすぐなら前の動画、それ以外は頭へ','⏭ 次の動画へ','新しい動画は、みんなが読み込めてからいっせいに始まる。待っているあいだは ▶ を押しても反応しない'].concat(I?['全画面で止めたり進めたりしても、もとの場所にもどる（みんなの動画は止まらない）']:['このページのボタン以外（YouTubeのボタン・キーボード・イヤホンなど）で止めたり進めたりしても、もとの場所にもどる（みんなの動画は止まらない）'],['電波や操作で自分の動画だけ止まっても、みんなの動画は止まらない。自分の動画は自動で追いつく']));
     S2('小窓（ピクチャインピクチャ）で見る',['小窓：動画を画面のすみに小さく出して、ほかのアプリを使いながら見られる'].concat(I?['動画の画面を触ると、押せる場所に点線の丸が出る → 丸のところ（全画面ボタン）を押す → 出てきた画面の小窓ボタン[PIP]を押す','動画の画面は、点線の丸のところ以外は押せない']:['パソコンのChromeで「小窓」ボタンを押す（詳細設定で自動にもできる）','Chrome以外のブラウザでは、小窓ボタンは出ない','動画の画面は押せない（詳細設定の「YouTubeのボタンを出す」をオンにすると押せる）']));
     if(I)S2('テレビで見る（AirPlay）',['動画の画面を触る → 点線の丸のところ（全画面ボタン）を押す → 出てきた画面のAirPlayボタン[AP]を押して、テレビを選ぶ','AirPlayボタンが出ないブラウザでは、コントロールセンターの「画面ミラーリング」でテレビに映す']);
     S2('困ったとき',['「▶ を押してね」と出たら ▶ を押す','音が出ないときは「消音」を押す','ずっと読み込み中のときは、ページを開き直す','流せない動画のときは ⏭ で次へ']);
-    S2('詳細設定',['YouTubeのボタンを出す：動画の上でYouTubeの操作ができる'].concat(I?[]:['自動小窓：再生したら自動で小窓にする（パソコンのChrome）'],['退出：この部屋から出る']));};
+    S2('詳細設定',['YouTubeのボタンを出す：画質や全画面など、動画の上でYouTubeの操作ができる（止める・進めるはこのページのボタンで）'].concat(I?[]:['自動小窓：再生したら自動で小窓にする（パソコンのChrome）'],['退出：この部屋から出る']));};
   [['i','iPhone'],['o','iPhone以外']].forEach(([d,t])=>{const b=btn('tg',t,()=>paint(d));b.dataset.d=d;tb.append(b);});
   paint(ls('hdev')||(iOS?'i':'o'));ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 // さがす画面：動画がまるごと見える位置までスクロールして、その下に画面を出す
 let FD=null;
 // キーボードが出ているときは、見えている範囲（visualViewport）の中で、動画の下からキーボードの上までに画面を出す
-function fitFind(go){if(!FD||FD.ov.hidden)return;const st=$('wrap')||$('stage');const ov=FD.ov,sh=ov.firstChild;if(!st){sh.style.height='';return;}
+function fitFind(go){if(!FD||FD.ov.hidden)return;if(matchMedia('(min-width:1000px)').matches){FD.ov.style.top='';FD.ov.style.bottom='';FD.ov.firstChild.style.height='';return;}const st=$('wrap')||$('stage');const ov=FD.ov,sh=ov.firstChild;if(!st){sh.style.height='';return;}
   const vv=window.visualViewport,vh=vv?vv.height:innerHeight,vt=vv?vv.offsetTop:0,kb=document.activeElement===FD.fi;
   // ページを動かすのは開いたときだけ（キーボードが出ているあいだに動かすと、iPhoneの自動スクロールとけんかして揺れる）
   if(go&&!kb){const d=st.getBoundingClientRect().top-8;if(Math.abs(d)>4)window.scrollBy(0,d);}
@@ -631,7 +647,7 @@ function openFind(q){
     sh.append(hd,f,res);ov.append(sh);document.body.append(ov);
     const ref2=()=>{fitSoon();setTimeout(fitSoon,350);setTimeout(fitSoon,800);};fi.addEventListener('blur',ref2);
     // キーボードが出たあと、動画が見えていなかったら1回だけページを動かして見せる
-    fi.addEventListener('focus',()=>{ref2();[450,900].forEach(t=>setTimeout(()=>{if(document.activeElement!==fi)return;const st=$('wrap');if(!st)return;const vv=window.visualViewport,vt=vv?vv.offsetTop:0;const d=st.getBoundingClientRect().top-vt-8;if(Math.abs(d)>12){window.scrollBy(0,d);fitSoon();}},t));});
+    fi.addEventListener('focus',()=>{ref2();[450,900].forEach(t=>setTimeout(()=>{if(document.activeElement!==fi||matchMedia('(min-width:1000px)').matches)return;const st=$('wrap');if(!st)return;const vv=window.visualViewport,vt=vv?vv.offsetTop:0;const d=st.getBoundingClientRect().top-vt-8;if(Math.abs(d)>12){window.scrollBy(0,d);fitSoon();}},t));});
     fi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fi.blur();run();}});
     const run=()=>{const q=fi.value.trim();if(!q){fi.focus();return;}if(vidOf(q)||listOf(q)){fi.value='';ov.hidden=true;const U=$('uin');U.value=q;U.focus();return;}if(!SEARCH)return;
       sb.disabled=true;res.textContent='';res.append(el('div','sinfo','探しています…'));fitSoon();
@@ -675,7 +691,7 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
   if(n.state==='play'&&st===1){const c0=P.getCurrentTime()||0;if(Math.abs(c0-exp(n))>1.2)fixPos(c0);else fixN=0;stuck=0;}
   else if(n.state==='play'&&st!==3){stuck++;late=true;if(stuck===2)P.playVideo();if(stuck===3){forced=true;try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}},1000);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip)applying=Date.now()+864e5;}else{applying=0;apply();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip)applying=Date.now()+864e5;}else{applying=0;apply();}putBg();});
 
 const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();};
 const m0=me();
