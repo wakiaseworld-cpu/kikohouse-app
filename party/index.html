@@ -273,7 +273,10 @@ html,body{background-color:#eef4fc!important;background-image:radial-gradient(#f
 .chip.pop-out .dot{animation:popout .9s ease-in-out both}
 @keyframes popout{0%{transform:none}20%{transform:translateY(-6px)}45%{transform:rotate(-12deg)}65%{transform:rotate(10deg)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.chip.pop-in .dot,.chip.pop-out .dot{animation:none}}
-.slnk[hidden]{display:none}.big:disabled{opacity:.45}
+.slnk[hidden]{display:none}
+.wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
+.wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
+.wlmore{display:block;width:100%;margin-top:8px}.rs.inq{color:var(--acc)!important}.big:disabled{opacity:.45}
 </style></head><body>
 <div class="w" id="app"></div>
 <div class="ov" id="ov" hidden><div class="sheet"><h3>動画同時視聴</h3>
@@ -288,7 +291,6 @@ html,body{background-color:#eef4fc!important;background-image:radial-gradient(#f
 <script>
 {
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
-const WISH='https://script.google.com/macros/s/AKfycbyNjses9QwU8f575Ua9wLQ-Io2WirPL1S7JeZxGMR5IBaDmWynmoPgIwM6bN5ZLl5Fp8g/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
 const COLORS=['#f08a4b','#4f9ad8','#59b36b','#b46ad8','#e2557a','#e3b23c','#3fb5b0','#7a7e88'];
@@ -309,7 +311,7 @@ let cid=ls('cid');if(!cid){cid='c'+Math.random().toString(36).slice(2,10)+Date.n
 if(!ROOM){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>もらったURLから開いてください</div>';}
 else{
 const S={now:null,queue:[],recent:[],members:{},pos:{}};
-let rate=1,lost=false,everConn=false,seenOn=null;const popAt={},wished={};
+let rate=1,lost=false,everConn=false,seenOn=null;const popAt={};
 let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='',pre=false,perr=null,conn=true,ldAt=0,fixN=0,fixT=0,wAt=0,rlAt=0;
 const now=()=>Date.now()+off;
 const me=()=>({name:ls('name')||'',color:ls('color')||COLORS[0],icon:ls('icon')||'',dots:ls('dots')||''});
@@ -589,12 +591,6 @@ function notice(a,b){if(!a||!b||b.by===cid||!nameOf(b.by))return;const nm=nameOf
 function toast(t,id){const w=$('wrap');if(!w)return;let b=$('toast');if(!b){b=el('div','toast');b.id='toast';w.append(b);}b.textContent='';
   if(id){const m=id===cid?me():(S.members[id]||{});const d=el('i','dot');paintDot(d,nameOf(id),m.color,m.icon);b.append(d);}
   b.append(el('span',null,t));b.classList.remove('show');void b.offsetWidth;b.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>b.classList.remove('show'),2800);}
-// 今の動画を、キコハウスのやりたいこと（みたいもの）に入れる
-function wish(){const n=S.now,b=$('wish');if(!n||!b||wished[n.vid])return;const v=n.vid;b.disabled=true;b.textContent='入れています…';
-  fetch(WISH,{method:'POST',body:JSON.stringify({fn:'party_wish',url:'https://www.youtube.com/watch?v='+v,name:me().name})}).then(r=>r.json())
-    .then(j=>{if(!j||!j.ok)throw new Error((j&&j.error)||'');wished[v]=j.dup?'もう入っています':'みたいものに入れました';toast(wished[v]);})
-    .catch(e=>{toast('入れられませんでした'+(e&&e.message&&!/fetch|JSON/i.test(e.message)?'（'+e.message+'）':''));})
-    .finally(()=>{b.disabled=false;paint();});}
 function start(){
   const app=fbApp();
   const db=app.database();ref=db.ref('party/'+ROOM);
@@ -645,8 +641,8 @@ function build(){const A=$('app');A.textContent='';
   const tg=el('div','tog'),mu=btn('tg','消音',()=>{if(forced){forced=false;ls('mute',0);}else ls('mute',ls('mute')==='1'?0:1);sound();if(ls('mute')!=='1'&&S.now&&S.now.state==='play'&&P&&ready){try{P.playVideo();}catch(_){}}paint();});mu.id='mute';
   const ccb=btn('tg','字幕',()=>{cc(ls('cc')!=='1');paint();});ccb.id='cc';tg.append(mu,ccb);
   if(window.documentPictureInPicture){const pb=btn('tg','小窓',pipToggle);pb.id='pipb';tg.append(pb);}tg.append(btn('tg','全画面',fsToggle),btn('tg fnd','🔍',()=>openFind('')));opt.append(tg);
-  const sl=btn('slnk','詳細設定',openSet),wb=btn('slnk','☆ みたいものに入れる',wish);wb.id='wish';
-  PC.append(wrap,tt,by,wb,bar,tm,ctl,opt,sl);
+  const sl=btn('slnk','詳細設定',openSet);
+  PC.append(wrap,tt,by,bar,tm,ctl,opt,sl);
   const AD=el('div','card'),u=el('div','url'),inp=el('input');inp.type='text';inp.enterKeyHint='go';inp.id='uin';inp.placeholder='URLを貼る';inp.autocomplete='off';
   const mini=el('div','mini');
   const go=m=>{if(m==='now'||!S.now||S.now.ended)autoPip();const pl=listOf(inp.value);if(pl){inp.value='';addList(pl,m,[...mini.querySelectorAll('button')]);return;}const id=vidOf(inp.value);if(!id){const v=inp.value.trim();if(v){inp.value='';openFind(v);}else inp.focus();return;}inp.value='';if(m==='now'||!S.now||S.now.ended)tapLoad(id,0);add(id,m);if(m==='now'&&P&&ready){try{P.playVideo();}catch(_){}}};
@@ -655,8 +651,13 @@ function build(){const A=$('app');A.textContent='';
   
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});u.append(inp);AD.append(u,mini);
   const Q=el('div','card');Q.id='q';const R=el('div','card');R.id='r';
+  const W=el('div','card'),wh=el('div','wlh'),wf=el('div','wlf'),wu=el('div','url'),wi=el('input'),wr=el('div');wr.id='wlr';wf.id='wlf';
+  const rel=btn('ic','↻',()=>loadWl()),chg=btn('ic','変更',()=>{if(confirm('みたいものリストの登録をやめて、別の再生リストにしますか？'))setWl('');});rel.id='wlrel';chg.id='wlchg';rel.setAttribute('aria-label','読み込み直す');
+  wh.append(el('h2',null,'みたいものリスト'),rel,chg);wi.type='text';wi.placeholder='YouTubeの再生リストのURL';wi.autocomplete='off';wi.enterKeyHint='done';
+  const reg2=()=>{if(setWl(wi.value.trim()))wi.value='';};wi.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();reg2();}});
+  wu.append(wi,btn('ic go','登録',reg2));wf.append(el('p',null,'YouTubeで作った再生リスト（公開か限定公開）のURLを貼ると、ここに中身が出ます。自分にだけ見えます。'),wu);W.append(wh,wf,wr);W.classList.add('g-side');
   top.classList.add('g-top');er.classList.add('g-top');M.classList.add('g-side');PC.classList.add('g-play');AD.classList.add('g-side');Q.classList.add('g-side');R.classList.add('g-side');
-  A.append(top,er,M,PC,AD,Q,R);dragInit(Q);make(stage);}
+  A.append(top,er,M,PC,AD,Q,W,R);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
   const d=P&&ready&&n?(P.getDuration()||0):0,c=P&&ready&&n&&n.vid===loaded?(P.getCurrentTime()||0):exp(n);
   bar.max=Math.max(1,Math.floor(d));bar.value=d?Math.min(bar.max,Math.floor(c)):0;bar.style.setProperty('--p',(d?Math.min(100,c/d*100):0)+'%');bar.disabled=!n;
@@ -676,7 +677,6 @@ function paint(){if(!$('mem'))return;const n=S.now;paintStat();
   const day=864e5*30;ms.filter(([id,m])=>live(id,m)||now()-(m.at||0)<day).sort((a,b)=>(live(...b)?1:0)-(live(...a)?1:0)||(b[1].at||0)-(a[1].at||0)).forEach(([id,m])=>mem.append(chip(id,m)));
   $('ttl').textContent=n?(n.title||'　'):'';$('ttl').hidden=!n;
   const an=n&&n.add?nameOf(n.add):'';$('by').textContent=an?an+'が追加':'';
-  const wb=$('wish');wb.hidden=!n;if(!wb.disabled)wb.textContent=n&&wished[n.vid]?'☆ '+wished[n.vid]:'☆ みたいものに入れる';
   const lp=P&&ready&&P.getPlayerState?[1,3].indexOf(P.getPlayerState())>=0:true;const pp=$('pp');pp.classList.toggle('on',!!n&&n.state==='play'&&(lp||!ready));pp.disabled=!n||n.state==='wait';
   const bd=$('badge'),bn=n&&n.state==='pause'&&!n.ended?nameOf(n.by):'';bd.hidden=!bn;bd.textContent='';if(bn){const m=n.by===cid?me():(S.members[n.by]||{});const d=el('i','dot');paintDot(d,bn,m.color,m.icon);bd.append(d,document.createTextNode(bn));}
   $('wrap').classList.toggle('pip',!!pip);$('mute').classList.toggle('on',ls('mute')==='1'||forced);$('cc').classList.toggle('on',ls('cc')==='1');const pb=$('pipb');if(pb)pb.classList.toggle('on',!!pip);$('cover').hidden=ls('ytc')==='1'||!!pip;$('lgc').hidden=$('ttc').hidden=!(ls('ytc')==='1')||!!pip;$('cover').classList.toggle('hole',iOS);
@@ -738,9 +738,25 @@ function inList(v){return !!(S.now&&S.now.vid===v)||S.queue.some(x=>x&&x.vid===v
 function hms(t){t=Math.round(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),x=String(t%60).padStart(2,'0');return h?h+':'+String(m).padStart(2,'0')+':'+x:m+':'+x;}
 function nV(n){return n>=1e8?(n/1e8).toFixed(n<1e9?1:0).replace(/\.0$/,'')+'億':n>=1e4?(n/1e4).toFixed(n<1e5?1:0).replace(/\.0$/,'')+'万':String(n);}
 function ago(a){const d=(Date.now()-Date.parse(a))/864e5;if(!(d>=0))return '';return d<1?'今日':d<30?Math.floor(d)+'日前':d<365?Math.floor(d/30)+'か月前':Math.floor(d/365)+'年前';}
+// ===== みたいものリスト：自分のYouTube再生リストを登録すると、自分にだけ中身が出る（部屋のみんなには送らない） =====
+const WL={id:ls('wl')||'',items:[],busy:false,err:'',n:20};try{WL.items=JSON.parse(ls('wli')||'[]')||[];}catch(_){}
+function loadWl(){if(!WL.id||WL.busy)return;WL.busy=true;WL.err='';paintWl();const id=WL.id,old={};WL.items.forEach(x=>{if(x&&x.title)old[x.vid]=x.title;});
+  playlist(id).then(ids=>{const need=ids.filter(v=>!old[v]);return titles(need).then(ts=>{need.forEach((v,i)=>{old[v]=ts[i]||'';});return ids.map(v=>({vid:v,title:old[v]||''}));});})
+    .then(items=>{if(WL.id!==id)return;WL.items=items;ls('wli',JSON.stringify(items));})
+    .catch(()=>{if(WL.id===id)WL.err='読み込めませんでした。再生リストが「公開」か「限定公開」になっているか確かめてね。';})
+    .finally(()=>{WL.busy=false;paintWl();});}
+function setWl(u){const id=listOf(u)||(/^[\w-]{12,}$/.test(String(u||'').trim())?String(u).trim():'');if(u&&!id){WL.err='再生リストのURLを貼ってね（list= が入っているURL）';paintWl();return false;}
+  WL.id=id;WL.items=[];WL.n=20;WL.err='';ls('wl',id||null);ls('wli',null);paintWl();loadWl();return true;}
+function paintWl(){const L=$('wlr');if(!L)return;L.textContent='';const has=!!WL.id;$('wlf').hidden=has;$('wlrel').hidden=$('wlchg').hidden=!has;
+  if(WL.err)L.append(el('div','empty',WL.err));if(!has)return;
+  if(!WL.items.length){L.append(el('div','empty',WL.busy?'読み込み中…':'動画がありません'));return;}
+  const inq=new Set(S.queue.map(x=>x&&x.vid).concat(S.now?[S.now.vid]:[]));
+  WL.items.slice(0,WL.n).forEach(it=>{const q=inq.has(it.vid);const r=row(it,[btn('ic','次に',()=>add(it.vid,'next',it.title)),btn('ic','後で',()=>add(it.vid,'last',it.title))],q?'追加済み':'');
+    if(q)r.querySelector('.rs').classList.add('inq');L.append(r);});
+  if(WL.items.length>WL.n)L.append(btn('ic wlmore','もっと見る（あと'+(WL.items.length-WL.n)+'本）',()=>{WL.n+=20;paintWl();}));}
 function row(it,acts,sub){const r=el('div','row');r.dataset.vid=it.vid;const im=el('img','th');im.src=thumb(it.vid);im.alt='';im.loading='lazy';
   const t=el('div','tx');t.append(el('div','rn',it.title||'YouTube'));if(sub)t.append(el('div','rs',sub));const a=el('div','acts');acts.forEach(x=>a.append(x));r.append(im,t,a);return r;}
-function paintLists(){const Q=$('q'),R=$('r');if(!Q)return;if(qDrag){paintLists.pend=1;return;}Q.textContent='';R.textContent='';
+function paintLists(){paintWl();const Q=$('q'),R=$('r');if(!Q)return;if(qDrag){paintLists.pend=1;return;}Q.textContent='';R.textContent='';
   Q.append(el('h2',null,'次に再生'));if(!S.queue.length)Q.append(el('div','empty','まだありません'));
   S.queue.forEach((it,i)=>{const hd=el('span','hd','≡');hd.setAttribute('aria-label','並べかえ');
     const r=row(it,[btn('ic','✕',()=>tx(c=>{if(!c.queue[i]||c.queue[i].vid!==it.vid)return false;c.queue.splice(i,1);return true;})),hd],nameOf(it.by));
@@ -766,7 +782,7 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
 document.addEventListener('pointerdown',()=>{if(!forced||!P||!ready)return;forced=false;sound();const n=S.now;if(n&&n.state==='play'){try{P.playVideo();}catch(_){}}paint();},true);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip&&!iOS)applying=Date.now()+864e5;}else{applying=0;apply();beat();}putBg();});
 
-const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();};
+const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();setTimeout(loadWl,2500);};
 const m0=me();
 if(m0.name)go();else{peek();askName(go);}
 }
