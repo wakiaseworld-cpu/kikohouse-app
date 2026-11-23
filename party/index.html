@@ -441,9 +441,15 @@ function nudge(d){if(iOS){setRate(1);return;}const a=Math.abs(d);if(a<0.12){setR
   const ok=rs.filter(x=>d>0?x<1&&x>=0.85:x>1&&x<=1.15);if(!ok.length){setRate(1);return;}
   setRate(ok.reduce((p,x)=>Math.abs(x-want)<Math.abs(p-want)?x:p));}
 // 位置がずれたら合わせ直す
-function fixPos(cur){const n=S.now,t=Date.now();if(!n||!P)return;setRate(1);if(t-fixT>15000)fixN=0;fixT=t;
+// AirPlayなどで「戻る方向に飛んでも前の位置のまま」のときは、飛びつづけると音がガビガビになる。
+// 飛んだあと、飛ぶ前の続きの位置にいたら「飛べなかった」とみなし、進みすぎなら進んだ秒数だけ止めて待つ。遅れなら30秒に1回だけ飛ぶ
+let noSeek=0;
+function fixPos(cur){const n=S.now,t=Date.now();if(!n||!P)return;setRate(1);
+  {const c=pcur(),L=fixPos.fx;fixPos.fx=null;if(L&&t-L.t<15000){const el=(t-L.t)/1000;if(Math.abs(c-(L.target+el))>2&&Math.abs(c-(L.pre+el))<2)noSeek++;}
+   if(noSeek>0){const d=c-exp(n);if(d>1.2&&d<120){const ms=Math.round(d*1000);applying=t+ms+2500;try{P.pauseVideo();}catch(_){}setTimeout(()=>{const m=S.now;if(m&&m.vid===n.vid&&m.state==='play'&&P&&ready){try{P.playVideo();}catch(_){}}},ms);return;}
+     if(t-(fixPos.at||0)<30000)return;fixPos.at=t;}}if(t-fixT>15000)fixN=0;fixT=t;
   // みんなは動かさず、ずれた自分だけ合わせる。飛んでも合わなければ、みんなの位置から読み込み直す（15秒に1回まで）
-  if(fixN<2){fixN++;applying=t+1500;try{P.seekTo(exp(n)+lead,true);}catch(_){}}else if(t-rlAt>15000){fixN=0;rlAt=t;applying=t+2500;try{ytLoad(n.vid,exp(n)+lead,true);}catch(_){}}}
+  if(fixN<2){fixN++;applying=t+1500;fixPos.fx={t,target:exp(n)+lead,pre:pcur()};try{P.seekTo(exp(n)+lead,true);}catch(_){}}else if(t-rlAt>15000){fixN=0;rlAt=t;applying=t+2500;try{ytLoad(n.vid,exp(n)+lead,true);}catch(_){}}}
 function markReady(){const n=S.now;if(!n||n.state!=='wait'||(n.rd&&n.rd[cid]))return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.rd=c.now.rd||{};if(c.now.rd[cid])return false;c.now.rd[cid]=true;return true;});}
 function checkStart(){const n=S.now;if(!n||n.state!=='wait'||!ref)return;
@@ -494,7 +500,7 @@ function apply(){const n=S.now;if(!P||!ready)return;setRate(1);
   const av=actual();if(loaded===n.vid&&av&&av!==n.vid&&Date.now()-ytAt>3000){loaded='';if(++miss>=2&&!needTap){needTap=true;setTimeout(paint,0);}}
   const want=exp(n);
   // 動画が変わったら、止められたときの消音はいったんやめる（止められたら、また音なしで流す）
-  if(loaded!==n.vid){try{P.setPlaybackRate(1);}catch(_){}rate=1;learn.last=0;loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;forced=false;
+  if(loaded!==n.vid){try{P.setPlaybackRate(1);}catch(_){}rate=1;learn.last=0;noSeek=0;fixPos.fx=null;loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;forced=false;
     if(n.state==='wait'){wAt=Date.now();pre=true;try{P.mute();}catch(_){}ytLoad(n.vid,want,true);return;}
     if(pre){pre=false;sound();}
     ytLoad(n.vid,want,n.state==='play');return;}
@@ -579,7 +585,7 @@ function pipOpen(){if(pip||!window.documentPictureInPicture)return;
     w.addEventListener('pagehide',()=>{let t=null;try{t=P&&ready?P.getCurrentTime():null;}catch(_){}pip=null;putBg();try{P&&P.destroy();}catch(_){}P=null;
       const n=S.now;if(n&&n.state!=='play'&&t!=null&&Math.abs(t-(n.pos||0))>1.5)setNow({pos:t});make($('stage'));paint();});}).catch(()=>{});}
 // タップしたその場で自分の画面に読み込む（iPhoneはタップの中で始めた動画だけ流せる）
-function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{learn.last=0;loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;forced=false;ytLoad(vid,pos||0,true);}catch(_){}}
+function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{learn.last=0;noSeek=0;fixPos.fx=null;loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;forced=false;ytLoad(vid,pos||0,true);}catch(_){}}
 const autoPip=()=>{if(ls('apip')==='1')pipOpen();};
 
 // ===== データ =====
