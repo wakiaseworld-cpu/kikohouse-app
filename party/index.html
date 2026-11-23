@@ -114,6 +114,12 @@ h2+.row{border-top:0}
 .dpal .plus input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;cursor:pointer}
 .dpal .plus{position:relative;overflow:hidden;display:grid;place-items:center;cursor:pointer;background:conic-gradient(#ff5f6d,#ffc371,#f9f871,#59d99d,#4fb3ff,#a77bff,#ff5f6d);color:#fff;font-weight:800;font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
 .dot.img,.av{image-rendering:pixelated}
+/* 色を作る：なぞっているあいだに色が変わる */
+.dpick{margin:-4px 0 14px}.dpick[hidden]{display:none}
+.dsv{--h:0;position:relative;height:150px;border-radius:14px;touch-action:none;cursor:crosshair;background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(var(--h),100%,50%))}
+.dhue{position:relative;height:28px;margin-top:12px;border-radius:14px;touch-action:none;cursor:pointer;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+.dsv i,.dhue i{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none;box-sizing:border-box}.dhue i{top:50%}
+.dprow{display:flex;align-items:center;gap:10px;margin-top:12px}.dpv{width:38px;height:38px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.1)}.dprow .pk{flex:1}
 .nokey{text-align:center;padding:90px 24px;color:var(--mut)}
 .nokey b{display:block;color:var(--ink);font-size:22px;margin-bottom:8px}
 
@@ -285,6 +291,7 @@ html,body{background-color:#eef4fc!important;background-image:radial-gradient(#f
  <button class="big" id="enter" type="button">入る</button><button class="pk off" id="leave" type="button" hidden>退出</button></div></div>
 <div class="ov cr" id="dz" hidden><div class="sheet dsheet"><div class="dhd"><span class="av" id="dav"></span><b>ドット絵をかく</b><span class="dur"><button type="button" id="dun" aria-label="戻る">↶</button><button type="button" id="dre" aria-label="進む">↷</button></span></div>
  <canvas id="dcv" class="dcv"></canvas><div class="dtools" id="dtools"></div><div class="dpal" id="dpal"></div>
+ <div class="dpick" id="dpick" hidden><div class="dsv" id="dsv"><i></i></div><div class="dhue" id="dhue"><i></i></div><div class="dprow"><span class="dpv" id="dpv"></span><button type="button" class="pk" id="dpadd">この色を追加</button></div></div>
  <div class="cbtn"><button id="dno" class="pk" type="button">やめる</button><button id="dok" class="big" type="button">決定</button></div></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -327,7 +334,8 @@ function shrink(file){return new Promise((ok,ng)=>{const u=URL.createObjectURL(f
 // ===== ドット絵エディタ（24×24）：ペン・消しゴム・ぬりつぶし・動かす（なぞって移動／2本指・ホイールで大きさ）・全部消す・戻る／進む・カラーチャート =====
 const N=24,PAL=['#ffffff','#4b3f57','#a093ab','#ff7a99','#ffb3c6','#ffb48a','#ffe08a','#f6c453','#9fe2bf','#5cc9a7','#8ec5ff','#4f9ad8','#c9a7ff','#8b6bd8','#b07a57','#e5554f'];
 // 丸いアイコンに合わせて、丸の中のマスだけ使う
-const inC=i=>{const x=i%N+.5-N/2,y=Math.floor(i/N)+.5-N/2;return x*x+y*y<=N*N/4;};
+// 丸に少しでもかかるマスは使える（ふちに塗れないマスが輪になって残らないように）
+const inC=i=>{const dx=Math.max(0,Math.abs(i%N+.5-N/2)-.5),dy=Math.max(0,Math.abs(Math.floor(i/N)+.5-N/2)-.5);return dx*dx+dy*dy<N*N/4;};
 function dotIcon(g,bg){if(!g||!g.some(Boolean))return '';const c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');x.fillStyle=bg||COLORS[7];x.fillRect(0,0,96,96);
   for(let i=0;i<N*N;i++)if(g[i]&&inC(i)){x.fillStyle=g[i];x.fillRect(i%N*4,Math.floor(i/N)*4,4,4);}return c.toDataURL('image/png');}
 function dotEdit(grid0,bg){return new Promise(res=>{const ov=$('dz'),cv=$('dcv'),ctx=cv.getContext('2d'),av=$('dav');
@@ -366,13 +374,23 @@ function dotEdit(grid0,bg){return new Promise(res=>{const ov=$('dz'),cv=$('dcv')
   const pal=()=>{const P=$('dpal');P.textContent='';PAL.concat(mine).forEach((c,i)=>{const b=btn(c===color?'on':'',null,()=>{color=c;ls('pen',c);if(tool==='erase'||tool==='move')setTool('pen');pal();});b.style.background=c;b.setAttribute('aria-label','色');
       if(i>=PAL.length){let t=0;b.addEventListener('pointerdown',()=>{t=setTimeout(()=>{mine=mine.filter(x=>x!==c);ls('mycols',JSON.stringify(mine));if(color===c)color=PAL[1];pal();},650);});['pointerup','pointerleave','pointercancel'].forEach(v=>b.addEventListener(v,()=>clearTimeout(t)));}
       P.append(b);});
-    const plus=el('label','plus','＋'),inp=el('input');inp.type='color';inp.value=color.length===7?color:'#ff7a99';inp.setAttribute('aria-label','色を作る');
-    inp.addEventListener('change',()=>{const c=inp.value;mine=[c].concat(mine.filter(x=>x!==c)).slice(0,8);ls('mycols',JSON.stringify(mine));color=c;ls('pen',c);if(tool==='erase'||tool==='move')setTool('pen');pal();});
-    plus.append(inp);P.append(plus);};
+    const plus=btn('plus','＋',()=>{const k=$('dpick');k.hidden=!k.hidden;if(!k.hidden)pk.from(color);});plus.setAttribute('aria-label','色を作る');P.append(plus);};
+  // 色を作る：上の四角で明るさ・あざやかさ、下の帯で色あい。なぞっているあいだにペンの色が変わる
+  const hex=(h,s,v)=>{const f=n=>{const k=(n+h/60)%6;return Math.round(255*(v-v*s*Math.max(0,Math.min(k,4-k,1))));};return '#'+[f(5),f(3),f(1)].map(x=>x.toString(16).padStart(2,'0')).join('');};
+  const pk={h:340,s:.5,v:1,
+    from(c){const m=/^#([0-9a-f]{6})$/i.exec(c||'');if(!m){this.show();return;}const n=parseInt(m[1],16),r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255,mx=Math.max(r,g,b),d=mx-Math.min(r,g,b);
+      let h=this.h;if(d)h=mx===r?60*(((g-b)/d)%6):mx===g?60*((b-r)/d+2):60*((r-g)/d+4);this.h=(h+360)%360;this.s=mx?d/mx:0;this.v=mx;this.show();},
+    show(){const sv=$('dsv'),hu=$('dhue');sv.style.setProperty('--h',this.h);const a=sv.firstChild,b=hu.firstChild,c=hex(this.h,this.s,this.v);
+      a.style.left=this.s*100+'%';a.style.top=(1-this.v)*100+'%';a.style.background=c;b.style.left=this.h/360*100+'%';b.style.background='hsl('+this.h+',100%,50%)';$('dpv').style.background=c;},
+    use(){color=hex(this.h,this.s,this.v);ls('pen',color);if(tool==='erase'||tool==='move')setTool('pen');[...$('dpal').children].forEach(x=>x.classList.remove('on'));this.show();}};
+  const drag=(elm,f)=>{elm.onpointerdown=e=>{e.preventDefault();try{elm.setPointerCapture(e.pointerId);}catch(_){}const r=elm.getBoundingClientRect(),go=ev=>{f(Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height)));pk.use();};go(e);
+    elm.onpointermove=go;elm.onpointerup=elm.onpointercancel=()=>{elm.onpointermove=null;};};};
+  drag($('dsv'),(x,y)=>{pk.s=x;pk.v=1-y;});drag($('dhue'),x=>{pk.h=Math.min(359.9,x*360);});
+  $('dpadd').onclick=()=>{const c=hex(pk.h,pk.s,pk.v);mine=[c].concat(mine.filter(x=>x!==c)).slice(0,8);ls('mycols',JSON.stringify(mine));color=c;ls('pen',c);if(tool==='erase'||tool==='move')setTool('pen');$('dpick').hidden=true;pal();};
   const end=v=>{ov.hidden=true;cv.onpointerdown=cv.onpointermove=cv.onpointerup=cv.onpointercancel=cv.onwheel=null;res(v);};
   $('dno').onclick=()=>end(null);$('dok').onclick=()=>{mvEnd();end({grid:g.slice(),icon:dotIcon(g,bg)});};
   ov.hidden=false;const px=Math.round(cv.getBoundingClientRect().width*(window.devicePixelRatio||1));cv.width=cv.height=Math.max(240,Math.min(960,px||480));
-  setTool('pen');pal();paintUR();draw();});}
+  $('dpick').hidden=true;setTool('pen');pal();paintUR();draw();});}
 
 function paintDot(d,name,color,icon){d.textContent=icon?'':String(name||'?').slice(0,1);d.classList.toggle('img',!!icon);d.style.backgroundColor=color||COLORS[7];d.style.backgroundSize='cover';d.style.backgroundPosition='center';if(icon)d.style.backgroundImage='url("'+icon+'")';else d.style.backgroundImage='';}
 function askName(cb,inRoom){const ov=$('ov'),nm=$('nm'),cols=$('cols');nm.value=ls('name')||'';let col=ls('color')||COLORS[Math.floor(Math.random()*7)];let icon=ls('icon')||'';let dots=null;try{dots=JSON.parse(ls('dots')||'null');}catch(_){}
