@@ -519,7 +519,7 @@ function onState(e){const st=e.data,n=S.now;
     const v=loaded,end=P.getDuration()||0;if(ref)ref.child('pos/'+v).remove();
     tx(c=>{if(!c.now||c.now.vid!==v||c.now.state!=='play')return false;const nx=c.queue.shift();
       c.now=nx?Object.assign(fresh(nx.vid,nx.title,nx.by||cid,0),{auto:1}):Object.assign({},c.now,{state:'pause',pos:end,ended:true,at:now(),by:cid});return true;});return;}
-  if(Date.now()<applying||!n||n.vid!==loaded)return;
+  if(Date.now()<applying||!n||n.vid!==loaded||document.hidden&&!pip)return;
   const cur=P.getCurrentTime()||0;
   // このページのボタン以外（YouTubeの画面・iPhoneの全画面・キーボード・イヤホンなど）で止めたり動かしたりしても、みんなには伝えず、自分だけもとに戻す
   if(st===1&&n.state==='play'&&Math.abs(cur-bias-exp(n))>2){fixPos(cur);return;}
@@ -832,9 +832,11 @@ function dragInit(Q){let r=null,from=-1;const rows=()=>[...Q.querySelectorAll('.
     if(paintLists.pend||to===from){paintLists.pend=0;paintLists();}};
   Q.addEventListener('pointerup',end);Q.addEventListener('pointercancel',end);}
 
+// 画面を閉じている（ほかのアプリ・画面ロック）あいだは、動画にさわらない。iPhoneは裏では古い位置しか返さないので、合わせようとして飛びつづけ、音がガビガビになる。
+// 相手の操作（止める・流す・動画を変える）にはついていき、画面に戻ったらすぐ合わせる
 setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
-  if(n&&loaded===n.vid&&Date.now()>=applying){const av=actual();if(av&&av!==n.vid){if(Date.now()-ytAt>3000)apply();}else if(av===n.vid&&(miss||needTap)){miss=0;if(needTap){needTap=false;paint();}}}
-  if(!n||document.hidden&&!pip&&!iOS||Date.now()<applying||n.vid!==loaded||n.state==='play'&&(n.at||0)>now())return;const st=P.getPlayerState();
+  if(n&&loaded===n.vid&&Date.now()>=applying&&!(document.hidden&&!pip)){const av=actual();if(av&&av!==n.vid){if(Date.now()-ytAt>3000)apply();}else if(av===n.vid&&(miss||needTap)){miss=0;if(needTap){needTap=false;paint();}}}
+  if(!n||document.hidden&&!pip||Date.now()<applying||n.vid!==loaded||n.state==='play'&&(n.at||0)>now())return;const st=P.getPlayerState();
   // 止めたのに流れている（止めた直後の「再生中」の知らせを待ち時間のあいだに見のがしたとき）は、もう一度止める
   if(n.state==='pause'&&st===1){applying=Date.now()+1500;try{P.pauseVideo();}catch(_){}return;}
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
