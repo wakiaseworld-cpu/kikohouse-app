@@ -320,6 +320,10 @@ let cid=ls('cid');if(!cid){cid='c'+Math.random().toString(36).slice(2,10)+Date.n
 if(!ROOM){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>もらったURLから開いてください</div>';}
 else{
 const S={now:null,queue:[],recent:[],members:{},pos:{},tall:{}};
+// 「今何秒か」の返事がいつも同じだけ遅れる端末（テレビ（AirPlay）に映しているときなど）は、飛んでもずれが変わらない。
+// そのときは遅れの分（bias）を覚えて差し引く。そうしないと1〜2秒ごとに飛びつづけて、音がガビガビになる
+let bias=0;function learn(d){const t=Date.now(),L=learn.last;learn.last={t,d};if(L&&t-L.t<6000&&Math.abs(d-L.d)<0.6&&Math.abs(bias+d)<6){bias+=d;learn.last=null;return true;}return false;}
+const pcur=()=>(P.getCurrentTime()||0)-bias;
 let ytAt=0,miss=0,needTap=false,rate=1,lost=false,everConn=false,seenOn=null;const popAt={},goneAt={};
 let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='',pre=false,perr=null,conn=true,ldAt=0,fixN=0,fixT=0,wAt=0,rlAt=0;
 const now=()=>Date.now()+off;
@@ -490,7 +494,7 @@ function apply(){const n=S.now;if(!P||!ready)return;setRate(1);
   const av=actual();if(loaded===n.vid&&av&&av!==n.vid&&Date.now()-ytAt>3000){loaded='';if(++miss>=2&&!needTap){needTap=true;setTimeout(paint,0);}}
   const want=exp(n);
   // 動画が変わったら、止められたときの消音はいったんやめる（止められたら、また音なしで流す）
-  if(loaded!==n.vid){try{P.setPlaybackRate(1);}catch(_){}rate=1;loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;forced=false;
+  if(loaded!==n.vid){try{P.setPlaybackRate(1);}catch(_){}rate=1;bias=0;learn.last=null;loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;forced=false;
     if(n.state==='wait'){wAt=Date.now();pre=true;try{P.mute();}catch(_){}ytLoad(n.vid,want,true);return;}
     if(pre){pre=false;sound();}
     ytLoad(n.vid,want,n.state==='play');return;}
@@ -500,13 +504,13 @@ function apply(){const n=S.now;if(!P||!ready)return;setRate(1);
   // みんなで始める時刻（少し先）までは、頭で止めて待つ。始まってから読み込むと、遅れた分を飛ばしてしまうため
   if(n.state==='play'&&(n.at||0)>now()){if(st===1||st===3){applying=Date.now()+1500;P.pauseVideo();}if(Math.abs(cur-(n.pos||0))>0.5){applying=Date.now()+1500;P.seekTo(n.pos||0,true);}
     clearTimeout(apply.t);apply.t=setTimeout(()=>{applying=0;apply();},(n.at||0)-now()+30);return;}
-  if(Math.abs(cur-want)>1.2){applying=Date.now()+1500;P.seekTo(want,true);}
+  if(Math.abs(cur-bias-want)>1.2){applying=Date.now()+1500;P.seekTo(want,true);}
   if(n.state==='play'&&st!==1&&st!==3&&!atEnd(st,want)){applying=Date.now()+1500;P.playVideo();}
   if(n.state!=='play'&&(st===1||st===3)){applying=Date.now()+1500;P.pauseVideo();}}
 function onState(e){const st=e.data,n=S.now;
   if(iOS&&st!==0){let v='';try{v=(P.getVideoData()||{}).video_id||'';}catch(_){}if(v&&loaded&&v!==loaded){paint();return;}}
   if(n&&n.state==='wait'&&n.vid===loaded){if(pre&&st===1){pre=false;applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}markReady();sound();}else if(st===1&&Date.now()>=applying){applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}}paint();return;}
-  if(st===1&&n&&n.vid===loaded&&late){late=false;stuck=0;if(n.state==='play'){const w=exp(n);if(Math.abs((P.getCurrentTime()||0)-w)>1.2){applying=Date.now()+1500;P.seekTo(w,true);}}}
+  if(st===1&&n&&n.vid===loaded&&late){late=false;stuck=0;if(n.state==='play'){const w=exp(n);if(Math.abs(pcur()-w)>1.2){applying=Date.now()+1500;P.seekTo(w,true);}}}
   if(st===1&&n&&n.vid===loaded){stuck=0;if(ls('cc')!=='1'&&onState.cc!==n.vid+n.at){onState.cc=n.vid+n.at;ccOff();}const t=(P.getVideoData&&P.getVideoData().title)||'';
     if(t&&!n.title)tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.title)return false;c.now.title=t;return true;});
     if(onState.last!==n.vid+n.at){onState.last=n.vid+n.at;addRecent(n.vid,t||n.title);}}
@@ -518,8 +522,8 @@ function onState(e){const st=e.data,n=S.now;
   if(Date.now()<applying||!n||n.vid!==loaded)return;
   const cur=P.getCurrentTime()||0;
   // このページのボタン以外（YouTubeの画面・iPhoneの全画面・キーボード・イヤホンなど）で止めたり動かしたりしても、みんなには伝えず、自分だけもとに戻す
-  if(st===1&&n.state==='play'&&Math.abs(cur-exp(n))>2){fixPos(cur);return;}
-  if(st===1&&n.state!=='play'){applying=Date.now()+1500;try{P.pauseVideo();if(Math.abs(cur-exp(n))>1)P.seekTo(exp(n),true);}catch(_){}return;}
+  if(st===1&&n.state==='play'&&Math.abs(cur-bias-exp(n))>2){fixPos(cur);return;}
+  if(st===1&&n.state!=='play'){applying=Date.now()+1500;try{P.pauseVideo();if(Math.abs(cur-bias-exp(n))>1)P.seekTo(exp(n),true);}catch(_){}return;}
   if(st===2&&n.state==='play'){applying=Date.now()+1500;setTimeout(()=>{try{P&&P.playVideo();}catch(_){}},300);return;}}
 // 字幕がオフのときは、YouTubeが勝手に出した字幕も消す（アカウントの設定で出ることがあるので、少しあとにも念のため）
 function ccOff(){const f=()=>{if(!P||!ready||ls('cc')==='1')return;try{P.setOption('captions','track',{});}catch(_){}try{P.unloadModule('captions');P.unloadModule('cc');}catch(_){}};f();setTimeout(f,800);setTimeout(f,2500);}
@@ -573,7 +577,7 @@ function pipOpen(){if(pip||!window.documentPictureInPicture)return;
     w.addEventListener('pagehide',()=>{let t=null;try{t=P&&ready?P.getCurrentTime():null;}catch(_){}pip=null;putBg();try{P&&P.destroy();}catch(_){}P=null;
       const n=S.now;if(n&&n.state!=='play'&&t!=null&&Math.abs(t-(n.pos||0))>1.5)setNow({pos:t});make($('stage'));paint();});}).catch(()=>{});}
 // タップしたその場で自分の画面に読み込む（iPhoneはタップの中で始めた動画だけ流せる）
-function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;forced=false;ytLoad(vid,pos||0,true);}catch(_){}}
+function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{bias=0;learn.last=null;loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;forced=false;ytLoad(vid,pos||0,true);}catch(_){}}
 const autoPip=()=>{if(ls('apip')==='1')pipOpen();};
 
 // ===== データ =====
@@ -710,7 +714,7 @@ function build(){const A=$('app');A.textContent='';
   top.classList.add('g-top');er.classList.add('g-top');M.classList.add('g-side');PC.classList.add('g-play');AD.classList.add('g-side');Q.classList.add('g-side');R.classList.add('g-side');
   A.append(top,er,M,PC,AD,Q,W,R);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
-  const d=P&&ready&&n?(P.getDuration()||0):0,c=P&&ready&&n&&n.vid===loaded?(P.getCurrentTime()||0):exp(n);
+  const d=P&&ready&&n?(P.getDuration()||0):0,c=P&&ready&&n&&n.vid===loaded?Math.max(0,pcur()):exp(n);
   bar.max=Math.max(1,Math.floor(d));bar.value=d?Math.min(bar.max,Math.floor(c)):0;bar.style.setProperty('--p',(d?Math.min(100,c/d*100):0)+'%');bar.disabled=!n;
   $('cur').textContent=fmt(c);$('dur').textContent=d?fmt(d):'0:00';}
 // ほかの人を部屋から出す
@@ -834,7 +838,7 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
   // 止めたのに流れている（止めた直後の「再生中」の知らせを待ち時間のあいだに見のがしたとき）は、もう一度止める
   if(n.state==='pause'&&st===1){applying=Date.now()+1500;try{P.pauseVideo();}catch(_){}return;}
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
-  if(n.state==='play'&&st===1){const c0=P.getCurrentTime()||0,d=c0-exp(n);if(Math.abs(d)>1.2)fixPos(c0);else{fixN=0;nudge(d);}stuck=0;}
+  if(n.state==='play'&&st===1){const c0=pcur(),d=c0-exp(n);if(Math.abs(d)>1.2){if(learn(d))return;fixPos(c0);}else{fixN=0;nudge(d);}stuck=0;}
   else if(n.state==='play'&&st!==3&&!atEnd(st,exp(n))){stuck++;late=true;if(stuck===2)P.playVideo();if(stuck===3&&!document.hidden){forced=true;try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
   if(!(n.state==='play'&&st===1))setRate(1);},1000);
 // 音なしで流しているとき（ブラウザに止められたとき）は、画面のどこかをさわったら音を戻す
