@@ -320,9 +320,9 @@ let cid=ls('cid');if(!cid){cid='c'+Math.random().toString(36).slice(2,10)+Date.n
 if(!ROOM){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>もらったURLから開いてください</div>';}
 else{
 const S={now:null,queue:[],recent:[],members:{},pos:{},tall:{}};
-// 「今何秒か」の返事がいつも同じだけ遅れる端末（テレビ（AirPlay）に映しているときなど）は、飛んでもずれが変わらない。
-// そのときは遅れの分（bias）を覚えて差し引く。そうしないと1〜2秒ごとに飛びつづけて、音がガビガビになる
-let bias=0;function learn(d){const t=Date.now(),L=learn.last;learn.last={t,d};if(L&&t-L.t<6000&&Math.abs(d-L.d)<0.6&&Math.abs(bias+d)<6){bias+=d;learn.last=null;return true;}return false;}
+// 飛んだあと読み込みに時間がかかる端末（テレビ（AirPlay）など）は、飛んだ先に着いたときにはもう遅れている。そのままだと「飛ぶ→遅れる→また飛ぶ」をくり返して音がガビガビになる。
+// 飛んだすぐあと（15秒以内）にまだずれていたら、その分（lead）だけ先をねらって飛ぶ（遅れていても進みすぎていても直す）
+const bias=0;let lead=0;function learn(d){const t=Date.now(),L=learn.last;if(L&&t-L<15000)lead=Math.min(8,Math.max(0,lead-d));learn.last=t;return false;}
 const pcur=()=>(P.getCurrentTime()||0)-bias;
 let ytAt=0,miss=0,needTap=false,rate=1,lost=false,everConn=false,seenOn=null;const popAt={},goneAt={};
 let ref=null,off=0,P=null,ready=false,loaded='',applying=0,stuck=0,late=false,forced=false,pip=null,drag=false,qDrag=false,posAt=0,err='',pre=false,perr=null,conn=true,ldAt=0,fixN=0,fixT=0,wAt=0,rlAt=0;
@@ -443,7 +443,7 @@ function nudge(d){if(iOS){setRate(1);return;}const a=Math.abs(d);if(a<0.12){setR
 // 位置がずれたら合わせ直す
 function fixPos(cur){const n=S.now,t=Date.now();if(!n||!P)return;setRate(1);if(t-fixT>15000)fixN=0;fixT=t;
   // みんなは動かさず、ずれた自分だけ合わせる。飛んでも合わなければ、みんなの位置から読み込み直す（15秒に1回まで）
-  if(fixN<2){fixN++;applying=t+1500;try{P.seekTo(exp(n),true);}catch(_){}}else if(t-rlAt>15000){fixN=0;rlAt=t;applying=t+2500;try{ytLoad(n.vid,exp(n),true);}catch(_){}}}
+  if(fixN<2){fixN++;applying=t+1500;try{P.seekTo(exp(n)+lead,true);}catch(_){}}else if(t-rlAt>15000){fixN=0;rlAt=t;applying=t+2500;try{ytLoad(n.vid,exp(n)+lead,true);}catch(_){}}}
 function markReady(){const n=S.now;if(!n||n.state!=='wait'||(n.rd&&n.rd[cid]))return;
   tx(c=>{if(!c.now||c.now.vid!==n.vid||c.now.at!==n.at||c.now.state!=='wait')return false;c.now.rd=c.now.rd||{};if(c.now.rd[cid])return false;c.now.rd[cid]=true;return true;});}
 function checkStart(){const n=S.now;if(!n||n.state!=='wait'||!ref)return;
@@ -494,7 +494,7 @@ function apply(){const n=S.now;if(!P||!ready)return;setRate(1);
   const av=actual();if(loaded===n.vid&&av&&av!==n.vid&&Date.now()-ytAt>3000){loaded='';if(++miss>=2&&!needTap){needTap=true;setTimeout(paint,0);}}
   const want=exp(n);
   // 動画が変わったら、止められたときの消音はいったんやめる（止められたら、また音なしで流す）
-  if(loaded!==n.vid){try{P.setPlaybackRate(1);}catch(_){}rate=1;bias=0;learn.last=null;loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;forced=false;
+  if(loaded!==n.vid){try{P.setPlaybackRate(1);}catch(_){}rate=1;learn.last=0;loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;forced=false;
     if(n.state==='wait'){wAt=Date.now();pre=true;try{P.mute();}catch(_){}ytLoad(n.vid,want,true);return;}
     if(pre){pre=false;sound();}
     ytLoad(n.vid,want,n.state==='play');return;}
@@ -507,7 +507,9 @@ function apply(){const n=S.now;if(!P||!ready)return;setRate(1);
   if(Math.abs(cur-bias-want)>1.2){applying=Date.now()+1500;P.seekTo(want,true);}
   if(n.state==='play'&&st!==1&&st!==3&&!atEnd(st,want)){applying=Date.now()+1500;P.playVideo();}
   if(n.state!=='play'&&(st===1||st===3)){applying=Date.now()+1500;P.pauseVideo();}}
-function onState(e){const st=e.data,n=S.now;
+// 流れはじめた時刻。流れはじめてすぐは「今何秒か」の返事が古いことがある（AirPlayで飛んだ直後など）ので、2秒たってからずれを見る
+let playAt=0;
+function onState(e){const st=e.data,n=S.now;if(st===1){if(!playAt)playAt=Date.now();}else playAt=0;
   if(iOS&&st!==0){let v='';try{v=(P.getVideoData()||{}).video_id||'';}catch(_){}if(v&&loaded&&v!==loaded){paint();return;}}
   if(n&&n.state==='wait'&&n.vid===loaded){if(pre&&st===1){pre=false;applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}markReady();sound();}else if(st===1&&Date.now()>=applying){applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}}paint();return;}
   if(st===1&&n&&n.vid===loaded&&late){late=false;stuck=0;if(n.state==='play'){const w=exp(n);if(Math.abs(pcur()-w)>1.2){applying=Date.now()+1500;P.seekTo(w,true);}}}
@@ -522,7 +524,7 @@ function onState(e){const st=e.data,n=S.now;
   if(Date.now()<applying||!n||n.vid!==loaded||document.hidden&&!pip)return;
   const cur=P.getCurrentTime()||0;
   // このページのボタン以外（YouTubeの画面・iPhoneの全画面・キーボード・イヤホンなど）で止めたり動かしたりしても、みんなには伝えず、自分だけもとに戻す
-  if(st===1&&n.state==='play'&&Math.abs(cur-bias-exp(n))>2){fixPos(cur);return;}
+  
   if(st===1&&n.state!=='play'){applying=Date.now()+1500;try{P.pauseVideo();if(Math.abs(cur-bias-exp(n))>1)P.seekTo(exp(n),true);}catch(_){}return;}
   if(st===2&&n.state==='play'){applying=Date.now()+1500;setTimeout(()=>{try{P&&P.playVideo();}catch(_){}},300);return;}}
 // 字幕がオフのときは、YouTubeが勝手に出した字幕も消す（アカウントの設定で出ることがあるので、少しあとにも念のため）
@@ -577,7 +579,7 @@ function pipOpen(){if(pip||!window.documentPictureInPicture)return;
     w.addEventListener('pagehide',()=>{let t=null;try{t=P&&ready?P.getCurrentTime():null;}catch(_){}pip=null;putBg();try{P&&P.destroy();}catch(_){}P=null;
       const n=S.now;if(n&&n.state!=='play'&&t!=null&&Math.abs(t-(n.pos||0))>1.5)setNow({pos:t});make($('stage'));paint();});}).catch(()=>{});}
 // タップしたその場で自分の画面に読み込む（iPhoneはタップの中で始めた動画だけ流せる）
-function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{bias=0;learn.last=null;loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;forced=false;ytLoad(vid,pos||0,true);}catch(_){}}
+function tapLoad(vid,pos){if(!P||!ready||!vid)return;try{learn.last=0;loaded=vid;pre=true;wAt=Date.now();applying=Date.now()+2500;stuck=0;perr=null;forced=false;ytLoad(vid,pos||0,true);}catch(_){}}
 const autoPip=()=>{if(ls('apip')==='1')pipOpen();};
 
 // ===== データ =====
@@ -840,7 +842,8 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
   // 止めたのに流れている（止めた直後の「再生中」の知らせを待ち時間のあいだに見のがしたとき）は、もう一度止める
   if(n.state==='pause'&&st===1){applying=Date.now()+1500;try{P.pauseVideo();}catch(_){}return;}
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
-  if(n.state==='play'&&st===1){const c0=pcur(),d=c0-exp(n);if(Math.abs(d)>1.2){if(learn(d))return;fixPos(c0);}else{fixN=0;nudge(d);}stuck=0;}
+  if(n.state==='play'&&st===1&&playAt&&Date.now()-playAt<2000){stuck=0;return;}
+  if(n.state==='play'&&st===1){const c0=pcur(),d=c0-exp(n);if(Math.abs(d)>1.2){learn(d);fixPos(c0);}else{fixN=0;learn.last=0;nudge(d);}stuck=0;}
   else if(n.state==='play'&&st!==3&&!atEnd(st,exp(n))){stuck++;late=true;if(stuck===2)P.playVideo();if(stuck===3&&!document.hidden){forced=true;try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
   if(!(n.state==='play'&&st===1))setRate(1);},1000);
 // 音なしで流しているとき（ブラウザに止められたとき）は、画面のどこかをさわったら音を戻す
