@@ -282,6 +282,7 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 @keyframes popin{0%{transform:scale(.6)}30%{transform:translateY(-12px) scale(1.1)}55%{transform:translateY(0) scale(.95)}75%{transform:translateY(-4px)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.chip.pop-in .dot{animation:none}}
 .slnk[hidden]{display:none}
+.ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
 .wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
 .wlmore{display:block;width:100%;margin-top:8px}.rs.inq{color:var(--acc)!important}.big:disabled{opacity:.45}
@@ -299,6 +300,8 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 {
+// 版（更新するたびに上げる。画面のいちばん下に小さく出す）
+const VER='2026.11.24-1';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -722,7 +725,7 @@ function build(){const A=$('app');A.textContent='';
   const reg2=()=>{if(setWl(wi.value.trim()))wi.value='';};wi.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();reg2();}});
   wu.append(wi,btn('ic go','登録',reg2));wf.append(el('p',null,'YouTubeで作った再生リスト（公開か限定公開）のURLを貼ると、ここに中身が出ます。自分にだけ見えます。'),wu);W.append(wh,wf,wr);W.classList.add('g-side');
   top.classList.add('g-top');er.classList.add('g-top');M.classList.add('g-side');PC.classList.add('g-play');AD.classList.add('g-side');Q.classList.add('g-side');R.classList.add('g-side');
-  A.append(top,er,M,PC,AD,Q,W,R);dragInit(Q);make(stage);}
+  const vr=el('div','ver','版 '+VER);vr.classList.add('g-side');A.append(top,er,M,PC,AD,Q,W,R,vr);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
   const d=P&&ready&&n?(P.getDuration()||0):0,c=P&&ready&&n&&n.vid===loaded?Math.max(0,pcur()):exp(n);
   bar.max=Math.max(1,Math.floor(d));bar.value=d?Math.min(bar.max,Math.floor(c)):0;bar.style.setProperty('--p',(d?Math.min(100,c/d*100):0)+'%');bar.disabled=!n;
