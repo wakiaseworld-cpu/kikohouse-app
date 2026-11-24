@@ -282,6 +282,7 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 @keyframes popin{0%{transform:scale(.6)}30%{transform:translateY(-12px) scale(1.1)}55%{transform:translateY(0) scale(.95)}75%{transform:translateY(-4px)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.chip.pop-in .dot{animation:none}}
 .slnk[hidden]{display:none}
+.logpre{white-space:pre-wrap;word-break:break-all;font:11px/1.5 ui-monospace,Menlo,monospace;margin:8px 0 0;font-weight:500!important}
 .ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
 .wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
@@ -301,7 +302,7 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.24-2';
+const VER='2026.11.24-3';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -435,7 +436,7 @@ const exp=n=>!n?0:n.state==='play'?(n.pos||0)+Math.max(0,now()-(n.at||0))/1000:(
 function make(host){const win=host.ownerDocument.defaultView;ready=false;loaded='';
   return yt(win).then(Y=>{host.textContent='';const d=win.document.createElement('div');host.append(d);
     P=new Y.Player(d,{width:'100%',height:'100%',playerVars:Object.assign(ls('cc')==='1'?{cc_lang_pref:'ja'}:{},{playsinline:1,rel:0,modestbranding:1,hl:'ja',cc_load_policy:ls('cc')==='1'?1:0,controls:iOS||ls('ytc')==='1'?1:0,fs:iOS||ls('ytc')==='1'?1:0,disablekb:ls('ytc')==='1'?0:1}),
-      events:{onReady:()=>{ready=true;vol();sound();apply();paint();},onStateChange:onState,onError:e=>{perr={vid:loaded,code:e&&e.data};paint();}}});},e=>{err=e.message;paint();});}
+      events:{onReady:()=>{wrapP();ready=true;vol();sound();apply();paint();},onStateChange:onState,onError:e=>{perr={vid:loaded,code:e&&e.data};paint();}}});},e=>{err=e.message;paint();});}
 // 少しのずれ（0.3〜1.2秒）は、飛ばずに速さを少し変えて追いつく（その動画で選べる速さがあるときだけ）
 function setRate(r){if(!P||!ready||rate===r)return;rate=r;try{P.setPlaybackRate(r);}catch(_){}}
 // iPhoneでは速さを変えない（テレビ（AirPlay）で音がガビガビになるため）。ずれたら飛んで合わせる
@@ -518,7 +519,14 @@ function apply(){const n=S.now;if(!P||!ready)return;setRate(1);
   if(n.state!=='play'&&(st===1||st===3)){applying=Date.now()+1500;P.pauseVideo();}}
 // 流れはじめた時刻。流れはじめてすぐは「今何秒か」の返事が古いことがある（AirPlayで飛んだ直後など）ので、2秒たってからずれを見る
 let playAt=0;
+// 動きの記録（調べる用）：プレーヤーへの命令・状態・部屋の変化・ボタンを、新しいもの200件まで覚える。詳細設定から見られる
+const logA=[];function plog(m){try{const d=new Date();logA.push(d.toTimeString().slice(0,8)+'.'+Math.floor(d.getMilliseconds()/100)+' '+m+(document.hidden?' [裏]':''));if(logA.length>200)logA.shift();}catch(_){}}
+function wrapP(){if(!P||P.__w)return;P.__w=1;['seekTo','playVideo','pauseVideo','loadVideoById','cueVideoById','loadPlaylist','cuePlaylist','playVideoAt','mute','unMute','setPlaybackRate','stopVideo'].forEach(k=>{const f=P[k];if(typeof f!=='function')return;P[k]=function(...a){let who='';try{who=(new Error().stack||'').split('\n').slice(1,5).map(x=>(x.match(/\b(apply|onState|fixPos|tapLoad|ytLoad|sound|checkStart|markReady|nudge|setRate|skip|toTop|prev)\b/)||[])[1]).filter(Boolean).join('<');}catch(_){}plog(k+'('+a.map(x=>typeof x==='number'?x.toFixed(1):typeof x==='object'?JSON.stringify(x).slice(0,80):String(x)).join(',')+') '+who);return f.apply(P,a);};});}
+// 音なしで流れているとき（止められたあとの流しなおし）は、自動で音を戻してみる。戻したとたんに止められたら、音なしに戻して流しつづけ、30秒後にまたためす
+const unTry={at:0,on:false};
 function onState(e){const st=e.data,n=S.now;if(st===1){if(!playAt)playAt=Date.now();}else playAt=0;
+  try{plog('状態：'+({'-1':'未開始','0':'終わり','1':'再生','2':'一時停止','3':'読み込み','5':'準備'}[st]||st)+' '+(P.getCurrentTime()||0).toFixed(1)+'秒');}catch(_){}
+  if(st===2&&unTry.on&&n&&n.state==='play'){unTry.on=false;forced=true;plog('音を戻したら止められた：音なしに戻す');try{P.mute();P.playVideo();}catch(_){}paint();return;}
   if(iOS&&st!==0){let v='';try{v=(P.getVideoData()||{}).video_id||'';}catch(_){}if(v&&loaded&&v!==loaded){paint();return;}}
   if(n&&n.state==='wait'&&n.vid===loaded){if(pre&&st===1){pre=false;applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}markReady();sound();}else if(st===1&&Date.now()>=applying){applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}}paint();return;}
   if(st===1&&n&&n.vid===loaded&&late){late=false;stuck=0;if(n.state==='play'){const w=exp(n);if(Math.abs(pcur()-w)>1.2){applying=Date.now()+1500;P.seekTo(w,true);}}}
@@ -566,7 +574,10 @@ function openSet(){const ov=el('div','ov'),sh=el('div','sheet sset');sh.append(e
   row('YouTubeのボタンを出す',()=>ls('ytc')==='1',()=>{ls('ytc',ls('ytc')==='1'?0:1);if(!pip){try{P&&P.destroy();}catch(_){}P=null;make($('stage'));}paint();});
   if(window.documentPictureInPicture)row('自動小窓',()=>ls('apip')==='1',()=>{ls('apip',ls('apip')==='1'?0:1);});
   const lv=btn('pk off','退出',()=>{ov.remove();leave();});
-  const bs=el('div','sbtns');bs.append(lv);sh.append(bs,btn('big','とじる',()=>ov.remove()));
+  const lg=btn('pk','動きの記録（調べる用）',()=>{const ov2=el('div','ov'),s2=el('div','sheet hsheet'),hd=el('div','fhd');hd.append(el('b',null,'動きの記録'),btn('ic','✕',()=>ov2.remove()));
+    const pre=el('pre','logpre',logA.slice().reverse().join('\n')||'まだありません');const cp=btn('pk','コピー',()=>{(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(pre.textContent):Promise.reject()).then(()=>{cp.textContent='コピーしました';},()=>{});});
+    const bx=el('div','hbody');bx.append(el('div','rs','版 '+VER+'　新しい順。おかしな動きのあとに、ここを画面写真かコピーで送ってね'),cp,pre);s2.append(hd,bx);ov2.append(s2);ov2.addEventListener('click',e=>{if(e.target===ov2)ov2.remove();});document.body.append(ov2);});
+  const bs=el('div','sbtns');bs.append(lg,lv);sh.append(bs,btn('big','とじる',()=>ov.remove()));
   ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 function pipToggle(){if(pip){pip.close();return;}pipOpen();}
 function pipOpen(){if(pip||!window.documentPictureInPicture)return;
@@ -657,7 +668,7 @@ function start(){
   const db=app.database();ref=db.ref('party/'+ROOM);
   db.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0;});
   db.ref('.info/connected').on('value',s=>{conn=!!s.val();if(conn){reg();if(lost){lost=false;toast('つながりました');applying=0;apply();}everConn=true;}else if(everConn)lost=true;paint();});
-  ref.child('p').on('value',s=>{const v=s.val()||{},old=S.now;S.now=v.now&&v.now.vid?v.now:null;notice(old,S.now);S.queue=arr(v.queue);apply();checkStart();paint();});
+  ref.child('p').on('value',s=>{const v=s.val()||{},old=S.now;S.now=v.now&&v.now.vid?v.now:null;{const m=S.now;plog('部屋：'+(m?({wait:'待つ',play:'再生',pause:'一時停止'}[m.state]||m.state)+' '+(m.pos||0).toFixed(1)+'秒 '+(nameOf(m.by)||''):'なし'));}notice(old,S.now);S.queue=arr(v.queue);apply();checkStart();paint();});
   ref.child('recent').on('value',s=>{S.recent=arr(s.val());paintLists();});
   ref.child('members').on('value',s=>{S.members=s.val()||{};pops();if(wantMerge){wantMerge=false;merge();}
     if(S.members[cid])seenSelf=true;else if(seenSelf&&!leaving){leaving=true;ls('name',null);location.reload();return;}paint();});
@@ -679,14 +690,14 @@ function build(){const A=$('app');A.textContent='';
   const bar=el('input','bar');bar.id='bar';bar.type='range';bar.min=0;bar.max=1;bar.step=1;bar.value=0;
   bar.addEventListener('input',()=>{drag=true;$('cur').textContent=fmt(bar.value);});
   // 指で動かしたときだけ飛ぶ（AirPlayの切りかえなどで、つまみが勝手に0へ動いたのを「0:00へ」と受け取らない）
-  bar.addEventListener('change',()=>{if(!drag){paintTime();return;}drag=false;const p=Number(bar.value);if(P&&ready){applying=Date.now()+1500;P.seekTo(p,true);}setNow({pos:p,ended:false});});
+  bar.addEventListener('change',()=>{if(!drag){paintTime();return;}drag=false;const p=Number(bar.value);plog('つまみ：'+p+'秒へ');if(P&&ready){applying=Date.now()+1500;P.seekTo(p,true);}setNow({pos:p,ended:false});});
   const tm=el('div','tm'),c1=el('span',null,'0:00'),c2=el('span',null,'0:00');c1.id='cur';c2.id='dur';tm.append(c1,c2);
   // 今の位置：プレーヤーが0秒と言うとき・読み込み中のときは、部屋の位置を使う（AirPlayの切りかえ中は0秒を返すことがある）
   const cur=()=>{const n=S.now;let c=0,st=-1;try{if(P&&ready){c=pcur();st=P.getPlayerState();}}catch(_){}if(n&&(c<=0||n.state==='play'&&st!==1&&st!==2))c=exp(n);return Math.max(0,c);};
-  const skip=d=>{if(!S.now)return;const p=Math.max(0,cur()+d);if(P&&ready){applying=Date.now()+1500;P.seekTo(p,true);}setNow({pos:p,ended:false});};
+  const skip=d=>{if(!S.now)return;plog('ボタン：'+(d>0?'+':'')+d+'（今 '+cur().toFixed(1)+'秒）');const p=Math.max(0,cur()+d);if(P&&ready){applying=Date.now()+1500;P.seekTo(p,true);}setNow({pos:p,ended:false});};
   // 自分だけ止まっているとき（ブラウザに止められたとき）は、みんなを止めずに自分だけ追いつく
   const localPlay=()=>P&&ready&&P.getPlayerState&&[1,3].indexOf(P.getPlayerState())>=0;
-  const pp=btn('pp',null,()=>{const n=S.now;
+  const pp=btn('pp',null,()=>{const n=S.now;plog('ボタン：▶/⏸');
     if(needTap&&n){needTap=false;miss=0;tapLoad(n.vid,n.state==='play'?exp(n):(n.pos||0));paint();return;}
     if(!n||n.state==='wait')return;if(n.state!=='play')autoPip();
     if(n.state==='play'&&P&&ready&&!localPlay()){late=true;applying=0;stuck=0;try{P.playVideo();}catch(_){}apply();paint();return;}
@@ -694,7 +705,7 @@ function build(){const A=$('app');A.textContent='';
     else{if(P&&ready){applying=Date.now()+1500;P.playVideo();}setNow({state:'play',pos:n.ended?0:cur(),ended:false});}});pp.id='pp';pp.setAttribute('aria-label','再生／一時停止');
   const ppw=el('span','ppw'),bd=el('span','badge');bd.id='badge';bd.hidden=true;ppw.append(pp,bd);
   const ctl=el('div','ctl');// ⏮：3秒たっていたら最初へ、始まってすぐなら前の動画へ（今の動画は「次に再生」の先頭へ）
-  const toTop=n=>{if(P&&ready){applying=Date.now()+1500;P.seekTo(0,true);}setNow({pos:0,ended:false,state:n.ended?'pause':n.state});};
+  const toTop=n=>{plog('ボタン：⏮ 頭へ');if(P&&ready){applying=Date.now()+1500;P.seekTo(0,true);}setNow({pos:0,ended:false,state:n.ended?'pause':n.state});};
   const prev=()=>{const n=S.now;if(!n)return;if(!n.ended&&cur()>3)return toTop(n);const pv=S.recent.find(x=>x&&x.vid&&x.vid!==n.vid);if(!pv)return toTop(n);
     savePos();const v=n.vid;tapLoad(pv.vid,0);tx(c=>{if(!c.now||c.now.vid!==v)return false;c.queue.unshift({vid:c.now.vid,title:c.now.title||'',by:c.now.add||cid});c.now=fresh(pv.vid,pv.title,cid,0);return true;});
     if(ref)ref.child('recent').transaction(c=>arr(c).filter(x=>x&&x.vid!==v));};
@@ -853,11 +864,12 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
   // 止めたのに流れている（止めた直後の「再生中」の知らせを待ち時間のあいだに見のがしたとき）は、もう一度止める
   if(n.state==='pause'&&st===1){applying=Date.now()+1500;try{P.pauseVideo();}catch(_){}return;}
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
+  if(forced&&n.state==='play'&&st===1&&!document.hidden&&ls('mute')!=='1'&&Date.now()-unTry.at>30000){unTry.at=Date.now();unTry.on=true;forced=false;plog('音なしで流れている：音を戻す');sound();paint();setTimeout(()=>{unTry.on=false;},3000);}
   if(n.state==='play'&&st===1&&playAt&&Date.now()-playAt<2000){stuck=0;return;}
-  if(n.state==='play'&&st===1){const c0=pcur(),d=c0-exp(n);if(Math.abs(d)>1.2){learn(d);fixPos(c0);}else{fixN=0;learn.last=0;nudge(d);}stuck=0;}
+  if(n.state==='play'&&st===1){const c0=pcur(),d=c0-exp(n);if(Math.abs(d)>0.6)plog('ずれ '+d.toFixed(1)+'秒（先回り '+lead.toFixed(1)+'）');if(Math.abs(d)>1.2){learn(d);fixPos(c0);}else{fixN=0;learn.last=0;nudge(d);}stuck=0;}
   else if(n.state==='play'&&st!==3&&!atEnd(st,exp(n))){stuck++;late=true;if(stuck===2)P.playVideo();if(stuck===3&&!document.hidden){forced=true;try{P.mute();P.playVideo();}catch(_){}}
     // それでも止まっているとき（電話中など）は、5秒ごとに音なしで流しなおしてみる。電話が終われば押さなくても流れる
-    if(stuck>3&&stuck%5===0&&!document.hidden){forced=true;try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
+    if(stuck>3&&stuck%5===0&&!document.hidden){forced=true;plog('止まったまま：音なしで流しなおす');try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
   if(!(n.state==='play'&&st===1))setRate(1);},1000);
 // 音なしで流しているとき（ブラウザに止められたとき）は、画面のどこかをさわったら音を戻す
 document.addEventListener('pointerdown',()=>{if(!forced||!P||!ready)return;forced=false;sound();const n=S.now;if(n&&n.state==='play'){try{P.playVideo();}catch(_){}}paint();},true);
