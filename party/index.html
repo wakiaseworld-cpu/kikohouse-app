@@ -301,7 +301,7 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.24-1';
+const VER='2026.11.24-2';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -855,7 +855,9 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
   if(n.state==='play'&&st===1&&playAt&&Date.now()-playAt<2000){stuck=0;return;}
   if(n.state==='play'&&st===1){const c0=pcur(),d=c0-exp(n);if(Math.abs(d)>1.2){learn(d);fixPos(c0);}else{fixN=0;learn.last=0;nudge(d);}stuck=0;}
-  else if(n.state==='play'&&st!==3&&!atEnd(st,exp(n))){stuck++;late=true;if(stuck===2)P.playVideo();if(stuck===3&&!document.hidden){forced=true;try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
+  else if(n.state==='play'&&st!==3&&!atEnd(st,exp(n))){stuck++;late=true;if(stuck===2)P.playVideo();if(stuck===3&&!document.hidden){forced=true;try{P.mute();P.playVideo();}catch(_){}}
+    // それでも止まっているとき（電話中など）は、5秒ごとに音なしで流しなおしてみる。電話が終われば押さなくても流れる
+    if(stuck>3&&stuck%5===0&&!document.hidden){forced=true;try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
   if(!(n.state==='play'&&st===1))setRate(1);},1000);
 // 音なしで流しているとき（ブラウザに止められたとき）は、画面のどこかをさわったら音を戻す
 document.addEventListener('pointerdown',()=>{if(!forced||!P||!ready)return;forced=false;sound();const n=S.now;if(n&&n.state==='play'){try{P.playVideo();}catch(_){}}paint();},true);
