@@ -217,6 +217,7 @@ html,body{background:var(--bg)!important;background-image:none!important;font-fa
 .k,.tg,.ic,.pk,.mini button,.dtools button,.dur button,.lnk{background:var(--btn)!important;color:var(--btnT)!important;border:1px solid var(--btnB)!important;box-shadow:none!important;text-shadow:none!important;border-radius:12px!important}
 .k:active,.tg:active,.ic:active,.mini button:active,.pp:active{transform:scale(.96)!important}
 .tg.on,.mini button.go,.ic.go,.dtools button.on,.big,.tap{background:var(--acc)!important;color:var(--accT)!important;border:1px solid var(--acc)!important;box-shadow:none!important;text-shadow:none!important;border-radius:12px!important}
+.url.sfind{margin-top:30px!important;padding-top:14px;border-top:1px solid var(--line)}
 .url .ufnd{border-radius:50%!important;border:1px solid #e6b000!important}
 .tg.fnd,.mini button.fnd,.url .ufnd{background:#ffd23f!important;border-color:#e6b000!important;color:#3a2a00!important;text-shadow:none!important;box-shadow:none!important}
 .pp{background:var(--acc)!important;border:0!important;box-shadow:none!important;border-radius:50%!important}
@@ -787,7 +788,7 @@ function build(){const A=$('app');A.textContent='';
   mini.append(btn('go','今すぐ',()=>go('now')),btn('','次に再生',()=>go('next')),btn('','後で再生',()=>go('last')));
   // さがす：下から出る画面（動画は上に見えたまま）
   
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});const fb=btn('hlp ufnd','🔍',()=>{const v=inp.value.trim();if(v&&(vidOf(v)||listOf(v)))return go('now');inp.value='';openFind(v);});fb.setAttribute('aria-label','言葉でさがす');u.append(inp,fb);AD.append(u,mini);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});u.append(inp);const sf=el('div','url sfind'),si=el('input');si.type='search';si.id='sin';si.enterKeyHint='search';si.placeholder='言葉でさがす';si.autocomplete='off';const sgo=()=>{const v=si.value.trim();si.value='';si.blur();openFind(v);};si.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sgo();}});const fb=btn('hlp ufnd','🔍',sgo);fb.setAttribute('aria-label','さがす');sf.append(si,fb);AD.append(u,mini,sf);
   const Q=el('div','card');Q.id='q';const R=el('div','card');R.id='r';
   const W=el('div','card'),wh=el('div','wlh'),wf=el('div','wlf'),wu=el('div','url'),wi=el('input'),wr=el('div');wr.id='wlr';wf.id='wlf';
   const rel=btn('ic','↻',()=>loadWl()),chg=btn('ic','変更',()=>{if(confirm('みたいものリストの登録をやめて、別の再生リストにしますか？'))setWl('');});rel.id='wlrel';chg.id='wlchg';rel.setAttribute('aria-label','読み込み直す');
