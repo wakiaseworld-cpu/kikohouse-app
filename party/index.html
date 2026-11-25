@@ -302,7 +302,8 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 .hsec .himg{display:block;width:100%;max-width:420px;margin:8px auto 10px;border-radius:12px;box-shadow:0 0 0 1px var(--line)}
 .ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
-.wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
+.wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}
+.wlf p+p{margin-top:-4px}.wlf .url{margin:0}
 .wlmore{display:block;width:100%;margin-top:8px}.rs.inq{color:var(--acc)!important}.big:disabled{opacity:.45}
 </style></head><body>
 <div class="w" id="app"></div>
@@ -794,7 +795,7 @@ function build(){const A=$('app');A.textContent='';
   const rel=btn('ic','↻',()=>loadWl()),chg=btn('ic','変更',()=>{if(confirm('みたいものリストの登録をやめて、別の再生リストにしますか？'))setWl('');});rel.id='wlrel';chg.id='wlchg';rel.setAttribute('aria-label','読み込み直す');
   wh.append(el('h2',null,'みたいものリスト'),rel,chg);wi.type='text';wi.placeholder='YouTubeの再生リストのURL';wi.autocomplete='off';wi.enterKeyHint='done';
   const reg2=()=>{if(setWl(wi.value.trim()))wi.value='';};wi.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();reg2();}});
-  wu.append(wi,btn('ic go','登録',reg2));wf.append(el('p',null,'YouTubeで作った再生リスト（公開か限定公開）のURLを貼ると、ここに中身が出ます。自分にだけ見えます。'),wu);W.append(wh,wf,wr);W.classList.add('g-side');
+  wu.append(wi,btn('ic go','登録',reg2));wf.append(el('p',null,'YouTubeの再生リストのURLを登録すると、自分だけが見える状態でリストの中身をここで開ける'),el('p',null,'見たい動画をここから選んですぐ入れられる'),wu);W.append(wh,wf,wr);W.classList.add('g-side');
   top.classList.add('g-top');er.classList.add('g-top');M.classList.add('g-side');PC.classList.add('g-play');AD.classList.add('g-side');Q.classList.add('g-side');R.classList.add('g-side');
   const vr=el('div','ver','版 '+VER);vr.classList.add('g-side');A.append(top,er,M,PC,Q,AD,W,R,vr);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
