@@ -197,6 +197,14 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .sres .row.sadd .rn::before{content:'✅ ';}
 .fsheet .sres{flex:1;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
 .sres{margin-top:10px}.sres .sinfo{text-align:center;color:#e07fb3;font-size:13px;padding:10px 0}
+.schan{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;background:var(--btn,#f1f1f4);border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:8px 10px;margin:0 0 8px;cursor:pointer;color:inherit}
+.schan .sav,.schd .sav{width:40px;height:40px;border-radius:50%;flex:none;object-fit:cover;background:#ddd}
+.schan .stx{flex:1;min-width:0;display:flex;flex-direction:column}
+.schan .stx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.schan .stx small{font-size:12px;opacity:.7}
+.schan .sgo{flex:none;font-size:13px;font-weight:700;color:#2f80ed}
+.schd{display:flex;align-items:center;gap:10px;margin:8px 0}
+.sback{font:inherit;font-size:13px;font-weight:700;background:none;border:0;color:#2f80ed;padding:4px 0;cursor:pointer}
 .sres .shd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;color:#c23d87}
 .sres .thw{position:relative;flex:none;display:block}.sres .thw .th{display:block}
 .sres .dur{position:absolute;right:4px;bottom:4px;background:rgba(80,20,60,.82);color:#fff;font-size:10px;font-weight:700;line-height:1;padding:3px 5px;border-radius:6px}
@@ -323,7 +331,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-17';
+const VER='2026.11.26-18';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -887,16 +895,22 @@ function openFind(q){
     fi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fi.blur();run();}});
     const run=()=>{const q=fi.value.trim();if(!q){fi.focus();return;}if(vidOf(q)||listOf(q)){fi.value='';ov.hidden=true;const U=$('uin');U.value=q;U.focus();return;}if(!SEARCH)return;
       sb.disabled=true;res.textContent='';res.append(el('div','sinfo','探しています…'));fitSoon();
-      fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'yt',q})}).then(r=>r.json()).then(j=>{
-        res.textContent='';
-        if(j.error){res.append(el('div','sinfo',j.error==='limit'?'今日はもう探せません。明日また使えます':/KEY/.test(j.error)?'鍵がまだ入っていません':'うまく探せませんでした'));return;}
-        const items=j.items||[];if(!items.length){res.append(el('div','sinfo','見つかりませんでした'));return;}
-        items.forEach(it=>{let r;const ok=()=>{r.classList.add('sadd');};const r0=row({vid:it.vid,title:it.title},[btn('ic go','▶',()=>{ok();autoPip();tapLoad(it.vid,0);add(it.vid,'now',it.title);}),btn('ic','次に',()=>{ok();add(it.vid,'next',it.title);}),btn('ic','後で',()=>{ok();add(it.vid,'last',it.title);})],it.ch||'');r=r0;if(inList(it.vid))ok();
+      fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'yt',q})}).then(r=>r.json()).then(j=>{last=j;show(j);}).catch(()=>{res.textContent='';res.append(el('div','sinfo','うまく探せませんでした'));}).finally(()=>{sb.disabled=false;fitSoon();});};
+    // 結果の表示：合うチャンネル（押すと最近の動画）→ 動画
+    let last=null;
+    const err=j=>{res.append(el('div','sinfo',j.error==='limit'?'今日はもう探せません。明日また使えます':/KEY/.test(j.error)?'鍵がまだ入っていません':'うまく探せませんでした'));};
+    const vids=items=>items.forEach(it=>{let r;const ok=()=>{r.classList.add('sadd');};const r0=row({vid:it.vid,title:it.title},[btn('ic go','▶',()=>{ok();autoPip();tapLoad(it.vid,0);add(it.vid,'now',it.title);}),btn('ic','次に',()=>{ok();add(it.vid,'next',it.title);}),btn('ic','後で',()=>{ok();add(it.vid,'last',it.title);})],it.ch||'');r=r0;if(inList(it.vid))ok();
           const mt=[it.views?nV(it.views)+'回':'',it.at?ago(it.at):''].filter(Boolean).join('・');const mtd=el('div','rs smeta',mt);if(mt||it.desc)r.querySelector('.tx').append(mtd);
           const im=r.querySelector('.th');if(it.sec){const w=el('span','thw');im.replaceWith(w);w.append(im,el('span','dur',hms(it.sec)));}
           res.append(r);if(it.desc){const d=el('div','sdesc',it.desc);d.hidden=true;res.append(d);r.classList.add('stap');mtd.append(el('span','sarr','▾'));r.addEventListener('click',e=>{if(e.target.closest('button'))return;d.hidden=!d.hidden;mtd.lastChild.textContent=d.hidden?'▾':'▴';});}});
-        res.scrollTop=0;fitSoon();
-      }).catch(()=>{res.textContent='';res.append(el('div','sinfo','うまく探せませんでした'));}).finally(()=>{sb.disabled=false;fitSoon();});};
+    const show=j=>{res.textContent='';if(j.error){err(j);return;}
+      const chs=j.channels||[],items=j.items||[];
+      chs.forEach(c=>{const b=el('button','schan');b.type='button';const im=el('img','sav');im.src=c.thumb||'';im.alt='';im.loading='lazy';const tx=el('span','stx');tx.append(el('b',null,c.title),el('small',null,c.subs?'登録者 '+nV(c.subs)+'人':'チャンネル'));b.append(im,tx,el('span','sgo','最近の動画 ›'));b.addEventListener('click',()=>openCh(c));res.append(b);});
+      if(!items.length&&!chs.length){res.append(el('div','sinfo','見つかりませんでした'));return;}
+      vids(items);res.scrollTop=0;fitSoon();};
+    // チャンネルの最近の動画（新しい順）
+    const openCh=c=>{res.textContent='';const bk=btn('sback','‹ 検索結果にもどる',()=>{if(last)show(last);});const hd=el('div','schd');const im=el('img','sav');im.src=c.thumb||'';im.alt='';hd.append(im,el('b',null,c.title+' の最近の動画'));res.append(bk,hd,el('div','sinfo','読み込んでいます…'));res.scrollTop=0;fitSoon();
+      fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}const items=j.items||[];if(!items.length){res.append(el('div','sinfo','動画がありません'));return;}vids(items);fitSoon();}).catch(()=>{res.lastChild.remove();res.append(el('div','sinfo','うまく読み込めませんでした'));});};
     FD={ov,fi,run,res};}
   FD.ov.hidden=false;fitFind(true);
   if(q){FD.fi.value=q;FD.run();}else if(!FD.fi.value)FD.fi.focus();}
