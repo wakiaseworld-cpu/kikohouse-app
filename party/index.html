@@ -303,7 +303,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.25-4';
+const VER='2026.11.25-5';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -895,14 +895,16 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip&&!
 if(/Android/i.test(navigator.userAgent)){document.documentElement.classList.add('tv');
   document.addEventListener('keydown',e=>{const D={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(!D||e.ctrlKey||e.altKey||e.metaKey)return;
     const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.type!=='range'&&D[1]===0)return;
-    const ovs=[...document.querySelectorAll('.ov,.fov')].filter(o=>!o.hidden&&o.offsetParent!==null);const root=ovs.length?ovs[ovs.length-1]:document;
+    const ovs=[...document.querySelectorAll('.ov,.fov')].filter(o=>!o.hidden&&o.offsetParent!==null);const root=ovs.length?ovs[ovs.length-1]:document.body.classList.contains('fs')?document.getElementById('wrap'):document;
     const L=[...root.querySelectorAll('button,input,a[href],[tabindex]')].filter(x=>!x.disabled&&x.tabIndex>=0&&x.offsetParent!==null&&x.getClientRects().length);
     e.preventDefault();e.stopPropagation();if(!L.length)return;
     const cur=L.includes(a)?a:null;if(!cur){(document.getElementById('pp')&&L.includes(document.getElementById('pp'))?document.getElementById('pp'):L[0]).focus();return;}
     const c=cur.getBoundingClientRect(),cx=c.left+c.width/2,cy=c.top+c.height/2;let best=null,bs=1e9;
     L.forEach(x=>{if(x===cur)return;const r=x.getBoundingClientRect(),dx=r.left+r.width/2-cx,dy=r.top+r.height/2-cy,along=dx*D[0]+dy*D[1],side=Math.abs(dx*D[1]+dy*D[0]);if(along<4)return;const sc=along+side*2.5;if(sc<bs){bs=sc;best=x;}});
     if(best){best.focus();try{best.scrollIntoView({block:'nearest',inline:'nearest'});}catch(_){}}},true);}
-const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();setTimeout(loadWl,2500);};
+const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();setTimeout(loadWl,2500);
+  // テレビ（Android）で開いたら、最初から動画だけを画面いっぱいに（操作はiPhoneから。上下左右で ✕ を選んで決定すると、いつものページに戻る）
+  if(document.documentElement.classList.contains('tv')){document.body.classList.add('fs');}};
 const m0=me();
 if(m0.name)go();else{peek();askName(go);}
 }
