@@ -610,15 +610,15 @@ function fsToggle(){const w=$('wrap'),d=document;setTimeout(fxShow,60);
   if(rf&&!iOS){rf.call(w).then(()=>{try{screen.orientation.lock(isTall()?'portrait':'landscape').catch(()=>{});}catch(_){}}).catch(()=>document.body.classList.add('fs'));}else document.body.classList.add('fs');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.body.classList.remove('fs');});
 // 全画面の ✕：3秒で消える。画面をさわる（パソコンはマウスを動かす）とまた出る。消えているあいだは押せない（さわった1回目は出すだけ）
-let fxT=0;function fxShow(){const x=$('fsx');if(!x)return;fsClk();x.classList.remove('fxh');const k=$('fsclk');if(k)k.classList.remove('fxh');clearTimeout(fxT);fxT=setTimeout(()=>{x.classList.add('fxh');const k=$('fsclk');if(k)k.classList.add('fxh');},3000);}
-// 全画面の今の時刻：✕ と同じく、さわったときだけ出て3秒で消える。動画の横（または上）に黒いところがあればそこに、なければ右上に小さく重ねる
+let fxT=0;function fxShow(){const x=$('fsx');if(!x)return;fsClk();x.classList.remove('fxh');const k=$('fsclk');if(k)k.classList.remove('fxh');clearTimeout(fxT);fxT=setTimeout(()=>{x.classList.add('fxh');const k=$('fsclk');if(k&&k.classList.contains('fsov'))k.classList.add('fxh');},3000);}
+// 全画面の今の時刻：動画の横（または上）の黒いところの右上に、ずっと出す。黒いところが狭いときは、さわったときだけ ✕ と一緒に右上に出す
 function fsClk(){const k=$('fsclk'),w=$('wrap');if(!k||!w)return;const d=new Date();k.textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
   const W=w.offsetWidth,H=w.offsetHeight;if(!W||!H)return;const a=w.classList.contains('tall')?9/16:16/9,vw=Math.min(W,H*a),vh=vw/a,sb=(W-vw)/2,tb=(H-vh)/2;
   k.style.cssText='';k.classList.remove('fsov');
-  if(sb>=56){k.style.right='0';k.style.width=sb+'px';k.style.top='14px';k.style.textAlign='center';}
-  else if(tb>=30){k.style.right='14px';k.style.top=(tb/2)+'px';k.style.transform='translateY(-50%)';}
+  if(sb>=56){k.style.right='0';k.style.width=sb+'px';k.style.top='14px';k.style.textAlign='center';k.classList.remove('fxh');}
+  else if(tb>=30){k.style.right='14px';k.style.top=(tb/2)+'px';k.style.transform='translateY(-50%)';k.classList.remove('fxh');}
   else{k.classList.add('fsov');k.style.right='14px';k.style.top='12px';}}
-setInterval(()=>{if(document.body.classList.contains('fs')||document.fullscreenElement||document.webkitFullscreenElement){fsClk();}},5000);
+setInterval(()=>{if(document.body.classList.contains('fs')||document.fullscreenElement||document.webkitFullscreenElement){const k=$('fsclk');const h=k&&k.classList.contains('fxh');fsClk();if(h&&k.classList.contains('fsov'))k.classList.add('fxh');}},5000);
 addEventListener('resize',()=>setTimeout(fsClk,200));
 document.addEventListener('fullscreenchange',fxShow);document.addEventListener('webkitfullscreenchange',fxShow);
 // パソコンのキーボード：スペース・K 再生／一時停止、← J 10秒戻す、→ L 10秒進む、Shift+N 次、Shift+P 前、M 消音、F 全画面、C 字幕
