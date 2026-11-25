@@ -286,6 +286,7 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,138,0,.35)!important}
 /* 自分のアイコン：色のふち */
 .chip.self .dot{box-shadow:0 0 0 3px var(--card),0 0 0 6px var(--acc)!important}
+.chip.away .dot{opacity:.6}.chip.away .dot:after{background:#f5b700!important}
 .ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
 .wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
@@ -305,7 +306,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-7';
+const VER='2026.11.26-8';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -345,6 +346,8 @@ const nameOf=id=>id===cid?me().name:((S.members[id]||{}).name||'');
 // 部屋にいる人：閉じたのに「いる」のまま残らないよう、3分合図がない人はいないことにする（合図は1分ごと）
 const live=(id,m)=>id===cid||!!(m&&m.on&&now()-(m.at||0)<180000);
 // 画面に出すとき：電波が一瞬切れた・iPhoneでほかのアプリを少し見た、くらいでは灰色にしない（切れてから90秒は、いることにしておく）
+// 裏にした人（ほかのアプリ・画面ロック・小窓など）：合図が送れないので、灰色にせず「裏で見ているかも」（少し薄く・黄色い点）にする。40分たったら灰色
+const away=(id,m)=>!shown(id,m)&&!!(m&&m.bg&&now()-(m.at||0)<40*60000);
 const shown=(id,m)=>live(id,m)||!!(m&&!m.on&&now()-(m.at||0)<90000);
 const colorOf=id=>((S.members[id]||{}).color)||COLORS[7];
 
@@ -782,14 +785,14 @@ function kick(id,m){const ov=el('div','ov'),sh=el('div','sheet kick'),d=el('i','
   const hd=el('div','khd');hd.append(d,el('b',null,m.name||''));
   const bs=el('div','cbtn');bs.append(btn('pk','やめる',()=>ov.remove()),btn('big','退出させる',()=>{ov.remove();if(ref)ref.child('members/'+id).remove();}));
   sh.append(hd,bs);ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
-function chip(id,m){const c=el('span','chip'+(shown(id,m)?'':' off')),d=el('i','dot');paintDot(d,m.name,m.color,m.icon);
+function chip(id,m){const c=el('span','chip'+(shown(id,m)?'':away(id,m)?' away':' off')),d=el('i','dot');if(away(id,m))c.title='裏で見ているかも';paintDot(d,m.name,m.color,m.icon);
   const pa=popAt[id],pt=pa?Date.now()-pa.t:1e9;if(pt<900){c.classList.add('pop-'+pa.k);d.style.animationDelay=-pt+'ms';}c.append(d,document.createTextNode(m.name||''));
   if(id===cid){c.classList.add('self');c.title='名前を変える';c.style.cursor='pointer';c.addEventListener('click',()=>askName(()=>{const v=me();if(ref)Promise.resolve(ref.child('members/'+cid).update({name:v.name,color:v.color,icon:v.icon||null,dots:v.dots||null})).then(()=>{wantMerge=true;merge();wantMerge=false;});},true));}
   else{c.style.cursor='pointer';c.addEventListener('click',()=>kick(id,m));}return c;}
 function paint(){if(!$('mem'))return;const n=S.now;paintStat();
   $('err').textContent=err;$('err').hidden=!err;
   const mem=$('mem');mem.textContent='';const ms=Object.entries(S.members).filter(([,m])=>m&&m.name);
-  const day=864e5*30;ms.filter(([id,m])=>shown(id,m)||now()-(m.at||0)<day).sort((a,b)=>(b[0]===cid?1:0)-(a[0]===cid?1:0)||(shown(...b)?1:0)-(shown(...a)?1:0)||(b[1].at||0)-(a[1].at||0)).forEach(([id,m])=>mem.append(chip(id,m)));
+  const day=864e5*30;const lv=(id,m)=>shown(id,m)?2:away(id,m)?1:0;ms.filter(([id,m])=>shown(id,m)||now()-(m.at||0)<day).sort((a,b)=>(b[0]===cid?1:0)-(a[0]===cid?1:0)||lv(...b)-lv(...a)||(b[1].at||0)-(a[1].at||0)).forEach(([id,m])=>mem.append(chip(id,m)));
   $('ttl').textContent=n?(n.title||'　'):'';$('ttl').hidden=!n;
   const an=n&&n.add?nameOf(n.add):'';$('by').textContent=an?an+'が追加':'';
   const lp=P&&ready&&P.getPlayerState?[1,3].indexOf(P.getPlayerState())>=0:true;const pp=$('pp');pp.classList.toggle('on',!!n&&n.state==='play'&&(lp||!ready));pp.disabled=!n||n.state==='wait'&&!needTap;
@@ -803,7 +806,7 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
   const paint=dev=>{ls('hdev',dev);[...tb.children].forEach(b=>b.classList.toggle('on',b.dataset.d===dev));bx.textContent='';const I=dev==='i';
     const S2=(t,L)=>{const d=el('details','hsec');d.append(el('summary',null,t));const ul=el('ul');L.forEach(x=>{const li=el('li');String(x).split(/(\[PIP\]|\[AP\])/).forEach(p=>{if(p==='[AP]'){const k=el('span','pipic');k.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-label="AirPlayボタン"><path d="M7 17H5a2.5 2.5 0 0 1-2.5-2.5v-8A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 19 17h-2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M12 13.5l5 6.5H7z" fill="#fff"/></svg>';li.append(k);return;}if(p==='[PIP]'){const k=el('span','pipic');k.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-label="小窓ボタン"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" fill="none" stroke="#fff" stroke-width="1.8"/><rect x="12" y="11.5" width="7.5" height="6" rx="1.2" fill="#fff"/><path d="M6 8l4 4M6 8v3M6 8h3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>';li.append(k);return;}li.append(p);});ul.append(li);});d.append(ul);bx.append(d);};
     S2('友だちを呼ぶ',['右上の「URLをコピー」で、この部屋のURLを送る','前と同じ名前で入ると、同じ人として入れる（アイコンもそのまま）']);
-    S2('見てる人',['上に、部屋にいる人のアイコンが並ぶ。灰色の人は今いない人','だれかが入ってくると、アイコンがぴょこっと跳ねる','ページを閉じた人は、しばらくすると灰色になる（電波が一瞬切れたくらいでは灰色にならない）','自分のアイコンを押すと、名前・色・アイコンを変えられる','ほかの人のアイコンを押すと、その人を部屋から出せる']);
+    S2('見てる人',['上に、部屋にいる人のアイコンが並ぶ。灰色の人は今いない人','だれかがその日はじめて入ってくると、アイコンがぴょこっと跳ねる（1人1日1回）','アプリを裏にした人（ほかのアプリ・画面ロック・小窓など）は、少し薄くなって点が黄色になる（裏で見ているかも）。40分たつと灰色','ページを閉じた人は、しばらくすると灰色になる（電波が一瞬切れたくらいでは灰色にならない）','自分のアイコンを押すと、名前・色・アイコンを変えられる','ほかの人のアイコンを押すと、その人を部屋から出せる']);
     S2('アイコン（ドット絵）',['名前を入れる画面の「ドット絵をかく」でかける','ペン・消しゴム・ぬりつぶし・動かす（なぞって移動、2本指で大きさ）・全部消す','↶ ↷ で戻す・進める','色の ＋ を押すと色を作る画面が出る。上の四角と下の虹色の帯をなぞると、そのままペンの色が変わる。「この色を追加」でパレットに残せる（8色まで）','作った色を長押しすると、パレットから消せる','背景をぬりつぶすと、丸のふちまで塗れる。線で分かれているところは、それぞれタップする']);
     S2('動画を追加する',['YouTubeのURLを貼って「今すぐ・次に再生・後で再生」','🔍 で言葉から探せる（1日95回まで）','プレイリストのURLなら、まとめて追加','「次に再生」は ≡ を持って並べかえられる','名前が入っていないと「入る」は押せない']);
     S2('みたいものリスト',['YouTubeで作った再生リスト（「公開」か「限定公開」）のURLを貼って「登録」','中身の動画が出るので「次に」「後で」で再生待ちに入れる。入っている動画には「追加済み」と出る','自分にだけ見える（部屋のほかの人には出ない）。この端末に覚えるので、別の端末ではもう一度登録する','開くたびに読み直す。↻ でも読み直せる','別の再生リストにするときは「変更」','「非公開」の再生リストは読めない']);
@@ -910,6 +913,7 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
     if(stuck>3&&stuck%5===0&&!document.hidden){forced=true;plog('止まったまま：音なしで流しなおす');try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
   if(!(n.state==='play'&&st===1))setRate(1);},1000);
 // 音なしで流しているとき（ブラウザに止められたとき）は、画面のどこかをさわったら音を戻す
+setInterval(()=>{if($('mem'))paint();},60000);
 // テレビ（Nebulaなど）のリモコンは「さわった」にならないので、キーを押したときも音を戻す
 {const back=()=>{if(!forced||!P||!ready)return;forced=false;plog('さわった・キーを押した：音を戻す');sound();const n=S.now;if(n&&n.state==='play'){try{P.playVideo();}catch(_){}}paint();};document.addEventListener('pointerdown',back,true);document.addEventListener('keydown',e=>{if(e.key==='Escape')return;if(TVD&&/^Arrow/.test(e.key))return;back();},true);}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip&&!iOS)applying=Date.now()+864e5;}else{applying=0;apply();beat();}putBg();});
