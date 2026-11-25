@@ -258,10 +258,6 @@ h2{background:none!important;color:var(--ink)!important;clip-path:none!important
 .cols button.on{outline:3px solid var(--acc)!important;outline-offset:3px}
 body.fs .fsx,.wrap:fullscreen .fsx{background:rgba(0,0,0,.6)!important}
 .fsx{transition:opacity .3s}.fsx.fxh{opacity:0!important;pointer-events:none!important}
-.fsclk{display:none;position:absolute;z-index:6;color:rgba(255,255,255,.88);font-weight:700;font-size:17px;line-height:1.2;font-variant-numeric:tabular-nums;pointer-events:none;transition:opacity .3s}
-body.fs .fsclk,.wrap:fullscreen .fsclk{display:block}
-.fsclk.fsov{background:rgba(0,0,0,.55);padding:3px 12px;border-radius:999px;font-size:15px}
-.fsclk.fxh{opacity:0}
 .k.ico:after{filter:var(--icoF)!important}
 html,body{background-color:#eef4fc!important;background-image:radial-gradient(#fff 3px,transparent 3.5px),radial-gradient(#d3e4fa 3px,transparent 3.5px)!important;background-size:26px 26px!important;background-position:0 0,13px 13px!important}.k,.tg,.ic,.pk,.mini button,.lnk,.tg.on,.mini button.go,.ic.go,.big,.url input,.frow input,.sheet input,#nm{border-radius:999px!important}.card{border-radius:22px!important}
 
@@ -325,7 +321,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-17';
+const VER='2026.11.26-16';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -610,16 +606,7 @@ function fsToggle(){const w=$('wrap'),d=document;setTimeout(fxShow,60);
   if(rf&&!iOS){rf.call(w).then(()=>{try{screen.orientation.lock(isTall()?'portrait':'landscape').catch(()=>{});}catch(_){}}).catch(()=>document.body.classList.add('fs'));}else document.body.classList.add('fs');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.body.classList.remove('fs');});
 // 全画面の ✕：3秒で消える。画面をさわる（パソコンはマウスを動かす）とまた出る。消えているあいだは押せない（さわった1回目は出すだけ）
-let fxT=0;function fxShow(){const x=$('fsx');if(!x)return;fsClk();x.classList.remove('fxh');const k=$('fsclk');if(k)k.classList.remove('fxh');clearTimeout(fxT);fxT=setTimeout(()=>{x.classList.add('fxh');const k=$('fsclk');if(k&&k.classList.contains('fsov'))k.classList.add('fxh');},3000);}
-// 全画面の今の時刻：動画の横（または上）の黒いところの右上に、ずっと出す。黒いところが狭いときは、さわったときだけ ✕ と一緒に右上に出す
-function fsClk(){const k=$('fsclk'),w=$('wrap');if(!k||!w)return;const d=new Date();k.textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
-  const W=w.offsetWidth,H=w.offsetHeight;if(!W||!H)return;const a=w.classList.contains('tall')?9/16:16/9,vw=Math.min(W,H*a),vh=vw/a,sb=(W-vw)/2,tb=(H-vh)/2;
-  k.style.cssText='';k.classList.remove('fsov');
-  if(sb>=56){k.style.right='0';k.style.width=sb+'px';k.style.top='14px';k.style.textAlign='center';k.classList.remove('fxh');}
-  else if(tb>=30){k.style.right='14px';k.style.top=(tb/2)+'px';k.style.transform='translateY(-50%)';k.classList.remove('fxh');}
-  else{k.classList.add('fsov');k.style.right='14px';k.style.top='12px';}}
-setInterval(()=>{if(document.body.classList.contains('fs')||document.fullscreenElement||document.webkitFullscreenElement){const k=$('fsclk');const h=k&&k.classList.contains('fxh');fsClk();if(h&&k.classList.contains('fsov'))k.classList.add('fxh');}},5000);
-addEventListener('resize',()=>setTimeout(fsClk,200));
+let fxT=0;function fxShow(){const x=$('fsx');if(!x)return;x.classList.remove('fxh');clearTimeout(fxT);fxT=setTimeout(()=>x.classList.add('fxh'),3000);}
 document.addEventListener('fullscreenchange',fxShow);document.addEventListener('webkitfullscreenchange',fxShow);
 // パソコンのキーボード：スペース・K 再生／一時停止、← J 10秒戻す、→ L 10秒進む、Shift+N 次、Shift+P 前、M 消音、F 全画面、C 字幕
 document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing||!$('pp'))return;const t=e.target;
@@ -763,7 +750,7 @@ function build(){const A=$('app');A.textContent='';
   const M=el('div','card');const mem=el('div','mem');mem.id='mem';M.append(mem);
   const PC=el('div','card'),wrap=el('div','wrap'),stage=el('div','stage');stage.id='stage';wrap.id='wrap';const stt=el('div','stat');stt.id='stat';stt.hidden=true;const cov=el('div','cover');cov.id='cover';const hint=el('i','fshint');hint.hidden=true;let hintT=0;
   // iPhone：動画をタップしたら、押せる場所（YouTubeの全画面ボタン）に輪を3秒出す
-  cov.addEventListener('click',()=>{if(!cov.classList.contains('hole'))return;hint.hidden=false;clearTimeout(hintT);hintT=setTimeout(()=>{hint.hidden=true;},3000);});const lgc=el('div','lgcover');lgc.id='lgc';const ttc=el('div','ttcover');ttc.id='ttc';const fx=btn('fsx','✕',fsToggle);fx.id='fsx';const fck=el('div','fsclk');fck.id='fsclk';wrap.append(fck);fx.setAttribute('aria-label','戻る');wrap.addEventListener('pointerdown',fxShow,true);wrap.addEventListener('mousemove',fxShow,true);wrap.append(stage,cov,hint,lgc,ttc,stt,fx,el('div','pipnote','小窓で再生中'));
+  cov.addEventListener('click',()=>{if(!cov.classList.contains('hole'))return;hint.hidden=false;clearTimeout(hintT);hintT=setTimeout(()=>{hint.hidden=true;},3000);});const lgc=el('div','lgcover');lgc.id='lgc';const ttc=el('div','ttcover');ttc.id='ttc';const fx=btn('fsx','✕',fsToggle);fx.id='fsx';fx.setAttribute('aria-label','戻る');wrap.addEventListener('pointerdown',fxShow,true);wrap.addEventListener('mousemove',fxShow,true);wrap.append(stage,cov,hint,lgc,ttc,stt,fx,el('div','pipnote','小窓で再生中'));
   const tt=el('div','ttl');tt.id='ttl';const by=el('div','by');by.id='by';
   const bar=el('input','bar');bar.id='bar';bar.type='range';bar.min=0;bar.max=1;bar.step=1;bar.value=0;
   bar.addEventListener('input',()=>{drag=true;$('cur').textContent=fmt(bar.value);});
