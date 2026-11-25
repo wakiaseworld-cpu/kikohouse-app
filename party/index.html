@@ -320,7 +320,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-14';
+const VER='2026.11.26-15';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -835,17 +835,20 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
       if(/^IMG:/.test(x)){const im=el('img','himg');im.src='help/'+x.slice(4)+'?v='+VER;im.alt='';im.loading='lazy';d.append(im);return;}
       if(/^s:/.test(x)){d.append(tx(el('p','hs'),x.slice(2)));return;}
       d.append(tx(el('p','hb'),x));});bx.append(d);};
-    H('友だちを呼ぶ',['IMG:call.jpg']);
-    H('動画を入れる',['IMG:add.jpg','s:今すぐ＝すぐ流す　次に再生＝今の動画の次　後で再生＝いちばん最後']);
-    H('ボタン',['IMG:ctl.jpg','IMG:opt.jpg','押すと、みんなの画面も同じになる']);
-    H('見てる人',['IMG:mem.jpg','s:自分の丸を押すと、名前やアイコンを変えられる']);
-    H('知らせ',['IMG:toast.jpg','だれかが操作すると、ここに出る']);
-    H('みたいものリスト',['YouTubeの再生リストのURLを登録すると、見たい動画をすぐ入れられる','s:自分にだけ見える']);
-    H('小窓で見る',I?['1:動画をさわる','1:点線の丸を押す','1:[PIP] を押す']:['「小窓」ボタンを押す','s:パソコンのChromeだけ']);
-    if(!I)H('キーボード',['q:スペース / K|再生・停止','q:← / J|10秒戻す','q:→ / L|10秒進む','q:Shift＋N|次へ','q:Shift＋P|前へ','q:M|音を消す','q:F|全画面','q:C|字幕']);
-    H('テレビで見る',['IMG:tvwait.jpg','1:テレビのブラウザで wakiaseworld-cpu.github.io/kikohouse-app/tv を開く','1:出てきた番号を、ここに入れる','IMG:tvset.jpg','あとは部屋を開くだけで、テレビに映る','s:つなぐのは最初の1回だけ'].concat(I?[]:['s:Chromebookなら、Chromeの ⋮ →「保存して共有」→「キャスト」でも映せる']));
+    const G=n=>'IMG:'+(I?'i_':'o_')+n+'.jpg';
+    H('友だちを呼ぶ',[G('call')]);
+    H('動画を入れる',[G('add'),'q:今すぐ|今すぐ再生される','q:次に再生|今の動画が終わったら再生される','q:後で再生|最後に再生される']);
+    H('動画検索',[G('find'),'s:YouTubeの動画をさがして、そのまま入れられる']);
+    H('ボタン',[G('ctl'),G('opt'),'このボタンで操作したときだけ、みんなの動画も同じように動く',I?'s:YouTubeの画面（全画面など）で止めたり進めたりしても、みんなの動画は変わらない。自分の動画もすぐ元にもどる':'s:動画の上（YouTubeのボタン）やイヤホンのボタンで操作しても、みんなの動画は変わらない。自分の動画もすぐ元にもどる']);
+    H('見てる人',[G('mem'),'s:自分の丸を押すと、名前やアイコンを変えられる']);
+    H('通知',['IMG:toast.jpg','誰かが操作したとき・動画を追加したとき・入ってきたときに通知が出る','s:（ピクチャインピクチャなど、一部の画面では出ない）']);
+    H('みたいものリスト',[G('wl'),'YouTubeの再生リストのURLを登録すると、自分だけが見える状態でリストの中身をここで開ける','見たい動画をここから選んですぐ入れられる']);
+    if(I)H('小窓で見る',['1:動画をさわる','1:点線の丸を押す','1:[PIP] を押す']);
+    else{H('小窓で見る',['「小窓」ボタンを押す','s:パソコンのChromeだけ。詳細設定の「自動小窓」をオンにすると、再生したら自動で小窓になる']);
+      H('キーボード',['q:スペース / K|再生・停止','q:← / J|10秒戻す','q:→ / L|10秒進む','q:Shift＋N|次へ','q:Shift＋P|前へ','q:M|音を消す','q:F|全画面','q:C|字幕']);}
+    H('テレビで見る',['IMG:tvwait.jpg','1:テレビのブラウザで wakiaseworld-cpu.github.io/kikohouse-app/tv を開く','1:出てきた番号を、ここに入れる',G('tvset'),'あとは部屋を開くだけで、テレビに映る','s:つなぐのは最初の1回だけ'].concat(I?[]:['s:Chromebookなら、Chromeの ⋮ →「保存して共有」→「キャスト」でも映せる']));
     H('困ったとき',['q:音が出ない|「消音」を押す','q:「▶ を押してね」と出た|▶ を押す','q:ずっと読み込み中|ページを開き直す','q:流せない動画|⏭ で次へ','q:なんか変な動きをした|詳細設定 →「動きの記録」を画面写真で送る']);};
-  [['i','iPhone'],['o','iPhone以外']].forEach(([d,t])=>{const b=btn('tg',t,()=>paint(d));b.dataset.d=d;tb.append(b);});
+  [['i','iPhone'],['o','パソコン']].forEach(([d,t])=>{const b=btn('tg',t,()=>paint(d));b.dataset.d=d;tb.append(b);});
   paint(ls('hdev')||(iOS?'i':'o'));ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 // さがす画面：動画がまるごと見える位置までスクロールして、その下に画面を出す
 let FD=null;
