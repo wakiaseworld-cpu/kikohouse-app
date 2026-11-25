@@ -284,9 +284,8 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 .slnk[hidden]{display:none}
 .logpre{white-space:pre-wrap;word-break:break-all;font:11px/1.5 ui-monospace,Menlo,monospace;margin:8px 0 0;font-weight:500!important}
 html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,138,0,.35)!important}
-/* 自分のアイコン：色のふちと「じぶん」 */
+/* 自分のアイコン：色のふち */
 .chip.self .dot{box-shadow:0 0 0 3px var(--card),0 0 0 6px var(--acc)!important}
-.metag{display:inline-block;margin-top:2px;font-size:10px;line-height:1.6;padding:0 7px;border-radius:999px;background:var(--acc);color:#fff;font-weight:700}
 .ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
 .wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
@@ -306,7 +305,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-5';
+const VER='2026.11.26-6';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -784,7 +783,7 @@ function kick(id,m){const ov=el('div','ov'),sh=el('div','sheet kick'),d=el('i','
   const bs=el('div','cbtn');bs.append(btn('pk','やめる',()=>ov.remove()),btn('big','退出させる',()=>{ov.remove();if(ref)ref.child('members/'+id).remove();}));
   sh.append(hd,bs);ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 function chip(id,m){const c=el('span','chip'+(shown(id,m)?'':' off')),d=el('i','dot');paintDot(d,m.name,m.color,m.icon);
-  const pa=popAt[id],pt=pa?Date.now()-pa.t:1e9;if(pt<900){c.classList.add('pop-'+pa.k);d.style.animationDelay=-pt+'ms';}c.append(d,document.createTextNode(m.name||''));if(id===cid)c.append(el('span','metag','じぶん'));
+  const pa=popAt[id],pt=pa?Date.now()-pa.t:1e9;if(pt<900){c.classList.add('pop-'+pa.k);d.style.animationDelay=-pt+'ms';}c.append(d,document.createTextNode(m.name||''));
   if(id===cid){c.classList.add('self');c.title='名前を変える';c.style.cursor='pointer';c.addEventListener('click',()=>askName(()=>{const v=me();if(ref)Promise.resolve(ref.child('members/'+cid).update({name:v.name,color:v.color,icon:v.icon||null,dots:v.dots||null})).then(()=>{wantMerge=true;merge();wantMerge=false;});},true));}
   else{c.style.cursor='pointer';c.addEventListener('click',()=>kick(id,m));}return c;}
 function paint(){if(!$('mem'))return;const n=S.now;paintStat();
