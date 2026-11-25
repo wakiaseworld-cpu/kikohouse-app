@@ -302,7 +302,7 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.25-1';
+const VER='2026.11.25-2';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -501,7 +501,7 @@ function ytLoad(vid,start,play){start=start||0;ytAt=Date.now();
 function apply(){const n=S.now;if(!P||!ready)return;setRate(1);
   if(!n){if(loaded){loaded='';applying=Date.now()+1500;try{P.stopVideo();}catch(_){}}return;}
   // 切りかえたつもりでも前の動画のままなら、読み込み直す（そのまま「再生」すると前の動画が頭からもう一度流れてしまう）。2回だめなら ▶ を押してもらう
-  const av=actual();if(loaded===n.vid&&av&&av!==n.vid&&Date.now()-ytAt>3000){loaded='';if(++miss>=2&&!needTap){needTap=true;setTimeout(paint,0);}}
+  if(autoNext())return;const av=actual();if(loaded===n.vid&&av&&av!==n.vid&&Date.now()-ytAt>3000){loaded='';if(++miss>=2&&!needTap){needTap=true;setTimeout(paint,0);}}
   const want=exp(n);
   // 動画が変わったら、止められたときの消音はいったんやめる（止められたら、また音なしで流す）
   if(loaded!==n.vid){try{P.setPlaybackRate(1);}catch(_){}rate=1;learn.last=0;noSeek=0;fixPos.fx=null;loaded=n.vid;applying=Date.now()+2500;stuck=0;late=n.state==='play';perr=null;forced=false;
@@ -529,11 +529,17 @@ const unTry={at:0,on:false};
 function endNow(v,end){if(ref)ref.child('pos/'+v).remove();
   tx(c=>{if(!c.now||c.now.vid!==v||c.now.state!=='play')return false;const nx=c.queue.shift();
     c.now=nx?Object.assign(fresh(nx.vid,nx.title,nx.by||cid,0),{auto:1}):Object.assign({},c.now,{state:'pause',pos:end,ended:true,at:now(),by:cid});return true;});}
+// iPhoneは再生リストで流しているので、動画が終わるとYouTubeが自分で次の動画へ進むことがある（「終わった」の知らせが来ないことがある）。
+// 流れているのが「次に再生」の先頭で、前の動画が終わりかけていたなら、部屋も次へ進める（前の動画に戻さない）
+const lastPos={vid:'',t:0,d:0};
+function autoNext(){const n=S.now;if(!n||n.state!=='play'||!loaded||n.vid!==loaded)return false;const av=actual(),q=S.queue[0];
+  if(!av||av===loaded||!q||av!==q.vid)return false;if(!(lastPos.vid===loaded&&lastPos.d>0&&lastPos.t>=lastPos.d-6))return false;
+  plog('YouTubeが自分で次の動画へ進んだ：部屋も次へ');endNow(loaded,lastPos.d);return true;}
 const overEnd=n=>{try{const d=P.getDuration()||0;return n&&n.state==='play'&&n.vid===loaded&&d>5&&exp(n)>=d+1;}catch(_){return false;}};
 function onState(e){const st=e.data,n=S.now;if(st===1){if(!playAt)playAt=Date.now();}else playAt=0;
   try{plog('状態：'+({'-1':'未開始','0':'終わり','1':'再生','2':'一時停止','3':'読み込み','5':'準備'}[st]||st)+' '+(P.getCurrentTime()||0).toFixed(1)+'秒');}catch(_){}
   if(st===2&&unTry.on&&n&&n.state==='play'){unTry.on=false;forced=true;plog('音を戻したら止められた：音なしに戻す');try{P.mute();P.playVideo();}catch(_){}paint();return;}
-  if(iOS&&st!==0){let v='';try{v=(P.getVideoData()||{}).video_id||'';}catch(_){}if(v&&loaded&&v!==loaded){paint();return;}}
+  if(iOS&&st!==0){let v='';try{v=(P.getVideoData()||{}).video_id||'';}catch(_){}if(v&&loaded&&v!==loaded){if(!autoNext())paint();return;}}
   if(n&&n.state==='wait'&&n.vid===loaded){if(pre&&st===1){pre=false;applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}markReady();sound();}else if(st===1&&Date.now()>=applying){applying=Date.now()+1500;try{P.pauseVideo();P.seekTo(n.pos||0,true);}catch(_){}}paint();return;}
   if(st===1&&n&&n.vid===loaded&&late){late=false;stuck=0;if(n.state==='play'&&!overEnd(n)){const w=exp(n);if(Math.abs(pcur()-w)>1.2){applying=Date.now()+1500;P.seekTo(w,true);}}}
   if(st===1&&n&&n.vid===loaded){stuck=0;if(ls('cc')!=='1'&&onState.cc!==n.vid+n.at){onState.cc=n.vid+n.at;ccOff();}const t=(P.getVideoData&&P.getVideoData().title)||'';
@@ -863,11 +869,12 @@ function dragInit(Q){let r=null,from=-1;const rows=()=>[...Q.querySelectorAll('.
 // 画面を閉じている（ほかのアプリ・画面ロック）あいだは、動画にさわらない。iPhoneは裏では古い位置しか返さないので、合わせようとして飛びつづけ、音がガビガビになる。
 // 相手の操作（止める・流す・動画を変える）にはついていき、画面に戻ったらすぐ合わせる
 setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
-  if(n&&loaded===n.vid&&Date.now()>=applying&&!(document.hidden&&!pip)){const av=actual();if(av&&av!==n.vid){if(Date.now()-ytAt>3000)apply();}else if(av===n.vid&&(miss||needTap)){miss=0;if(needTap){needTap=false;paint();}}}
+  if(n&&loaded===n.vid&&Date.now()>=applying&&!(document.hidden&&!pip)){const av=actual();if(av&&av!==n.vid){if(autoNext())return;if(Date.now()-ytAt>3000)apply();}else if(av===n.vid&&(miss||needTap)){miss=0;if(needTap){needTap=false;paint();}}}
   if(!n||document.hidden&&!pip||Date.now()<applying||n.vid!==loaded||n.state==='play'&&(n.at||0)>now())return;const st=P.getPlayerState();
   if(overEnd(n)){plog('部屋の位置が動画の長さをこえている：次へ');endNow(n.vid,P.getDuration()||0);return;}
   // 止めたのに流れている（止めた直後の「再生中」の知らせを待ち時間のあいだに見のがしたとき）は、もう一度止める
   if(n.state==='pause'&&st===1){applying=Date.now()+1500;try{P.pauseVideo();}catch(_){}return;}
+  if(n.state==='play'&&st===1&&actual()===loaded){try{lastPos.vid=loaded;lastPos.t=P.getCurrentTime()||0;lastPos.d=P.getDuration()||0;}catch(_){}}
   if(n.state==='play'&&st===1&&Date.now()-posAt>10000){posAt=Date.now();savePos();}
   if(forced&&n.state==='play'&&st===1&&!document.hidden&&ls('mute')!=='1'&&Date.now()-unTry.at>30000){unTry.at=Date.now();unTry.on=true;forced=false;plog('音なしで流れている：音を戻す');sound();paint();setTimeout(()=>{unTry.on=false;},3000);}
   if(n.state==='play'&&st===1&&playAt&&Date.now()-playAt<2000){stuck=0;return;}
