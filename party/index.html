@@ -303,7 +303,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-2';
+const VER='2026.11.26-3';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -599,7 +599,9 @@ function openSet(){const ov=el('div','ov'),sh=el('div','sheet sset');sh.append(e
     const pre=el('pre','logpre',logA.slice().reverse().join('\n')||'まだありません');const cp=btn('pk','コピー',()=>{(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(pre.textContent):Promise.reject()).then(()=>{cp.textContent='コピーしました';},()=>{});});
     const bx=el('div','hbody');bx.append(el('div','rs','版 '+VER+'　新しい順。おかしな動きのあとに、ここを画面写真かコピーで送ってね'),cp,pre);s2.append(hd,bx);ov2.append(s2);ov2.addEventListener('click',e=>{if(e.target===ov2)ov2.remove();});document.body.append(ov2);});
   if(!TVD&&!TVP){const tr=el('div','srow');const tb=btn('tg'+(ls('tvlink')?' on':''),ls('tvlink')?'つないでいる':'つなぐ',()=>{ov.remove();tvPair();});tr.append(el('span',null,'テレビとつなぐ（待ち受け）'),tb);sh.append(tr);}
-  const bs=el('div','sbtns');bs.append(lg,lv);sh.append(bs,btn('big','とじる',()=>ov.remove()));
+  // この機械だけ、ほかの機械とまとまった「同じ人」から分かれて入りなおす（もとの人はほかの機械にそのまま残る）
+  const sp=btn('pk','この機械を別の人として入りなおす',()=>{if(!confirm('この機械だけを別の人として入りなおします。次の画面で、もう片方とちがう名前を入れてください。'))return;ov.remove();leaving=true;try{ref&&ref.child('members/'+cid).onDisconnect().cancel();}catch(_){}ls('cid',null);ls('name',null);ls('icon',null);ls('dots',null);location.reload();});
+  const bs=el('div','sbtns');bs.append(lg,sp,lv);sh.append(bs,btn('big','とじる',()=>ov.remove()));
   ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 function pipToggle(){if(pip){pip.close();return;}pipOpen();}
 function pipOpen(){if(pip||!window.documentPictureInPicture)return;
