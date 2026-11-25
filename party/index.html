@@ -216,7 +216,8 @@ html,body{background:var(--bg)!important;background-image:none!important;font-fa
 .k,.tg,.ic,.pk,.mini button,.dtools button,.dur button,.lnk{background:var(--btn)!important;color:var(--btnT)!important;border:1px solid var(--btnB)!important;box-shadow:none!important;text-shadow:none!important;border-radius:12px!important}
 .k:active,.tg:active,.ic:active,.mini button:active,.pp:active{transform:scale(.96)!important}
 .tg.on,.mini button.go,.ic.go,.dtools button.on,.big,.tap{background:var(--acc)!important;color:var(--accT)!important;border:1px solid var(--acc)!important;box-shadow:none!important;text-shadow:none!important;border-radius:12px!important}
-.tg.fnd,.mini button.fnd{background:#ffd23f!important;border-color:#e6b000!important;color:#3a2a00!important;text-shadow:none!important;box-shadow:none!important}
+.url .ufnd{border-radius:50%!important;border:1px solid #e6b000!important}
+.tg.fnd,.mini button.fnd,.url .ufnd{background:#ffd23f!important;border-color:#e6b000!important;color:#3a2a00!important;text-shadow:none!important;box-shadow:none!important}
 .pp{background:var(--acc)!important;border:0!important;box-shadow:none!important;border-radius:50%!important}
 .pp:before{border-left-color:var(--accT)!important;filter:none!important}.pp.on:before{background:var(--accT)!important;box-shadow:13px 0 0 var(--accT)!important}
 .k.ico:after{filter:var(--icoF)!important}
@@ -769,7 +770,7 @@ function build(){const A=$('app');A.textContent='';
   const tg=el('div','tog'),mu=btn('tg','消音',()=>{if(forced){forced=false;ls('mute',0);}else ls('mute',ls('mute')==='1'?0:1);sound();if(ls('mute')!=='1'&&S.now&&S.now.state==='play'&&P&&ready){try{P.playVideo();}catch(_){}}paint();});mu.id='mute';
   const ccb=btn('tg','字幕',()=>{cc(ls('cc')!=='1');paint();});ccb.id='cc';tg.append(mu,ccb);
   if(window.documentPictureInPicture){const pb=btn('tg','小窓',pipToggle);pb.id='pipb';tg.append(pb);}const tb=btn('tg','縦',()=>{if(S.now)markTall(S.now.vid,!isTall());});tb.id='tallb';tb.title='縦の動画を縦長で見る';
-  tg.append(tb,btn('tg','全画面',fsToggle),btn('tg fnd','🔍',()=>openFind('')));opt.append(tg);
+  tg.append(tb,btn('tg','全画面',fsToggle));opt.append(tg);
   const sl=btn('slnk','詳細設定',openSet);
   const tl=el('div','toastline');tl.id='toastline';PC.append(tl,wrap,tt,by,bar,tm,ctl,opt,sl);
   const AD=el('div','card'),u=el('div','url'),inp=el('input');inp.type='text';inp.enterKeyHint='go';inp.id='uin';inp.placeholder='URLを貼る';inp.autocomplete='off';
@@ -778,7 +779,7 @@ function build(){const A=$('app');A.textContent='';
   mini.append(btn('go','今すぐ',()=>go('now')),btn('','次に再生',()=>go('next')),btn('','後で再生',()=>go('last')));
   // さがす：下から出る画面（動画は上に見えたまま）
   
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});u.append(inp);AD.append(u,mini);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});const fb=btn('hlp ufnd','🔍',()=>{const v=inp.value.trim();if(v&&(vidOf(v)||listOf(v)))return go('now');inp.value='';openFind(v);});fb.setAttribute('aria-label','言葉でさがす');u.append(inp,fb);AD.append(u,mini);
   const Q=el('div','card');Q.id='q';const R=el('div','card');R.id='r';
   const W=el('div','card'),wh=el('div','wlh'),wf=el('div','wlf'),wu=el('div','url'),wi=el('input'),wr=el('div');wr.id='wlr';wf.id='wlf';
   const rel=btn('ic','↻',()=>loadWl()),chg=btn('ic','変更',()=>{if(confirm('みたいものリストの登録をやめて、別の再生リストにしますか？'))setWl('');});rel.id='wlrel';chg.id='wlchg';rel.setAttribute('aria-label','読み込み直す');
@@ -786,7 +787,7 @@ function build(){const A=$('app');A.textContent='';
   const reg2=()=>{if(setWl(wi.value.trim()))wi.value='';};wi.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();reg2();}});
   wu.append(wi,btn('ic go','登録',reg2));wf.append(el('p',null,'YouTubeで作った再生リスト（公開か限定公開）のURLを貼ると、ここに中身が出ます。自分にだけ見えます。'),wu);W.append(wh,wf,wr);W.classList.add('g-side');
   top.classList.add('g-top');er.classList.add('g-top');M.classList.add('g-side');PC.classList.add('g-play');AD.classList.add('g-side');Q.classList.add('g-side');R.classList.add('g-side');
-  const vr=el('div','ver','版 '+VER);vr.classList.add('g-side');A.append(top,er,M,PC,AD,Q,W,R,vr);dragInit(Q);make(stage);}
+  const vr=el('div','ver','版 '+VER);vr.classList.add('g-side');A.append(top,er,M,PC,Q,AD,W,R,vr);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
   const d=P&&ready&&n?(P.getDuration()||0):0,c=P&&ready&&n&&n.vid===loaded?Math.max(0,pcur()):exp(n);
   bar.max=Math.max(1,Math.floor(d));bar.value=d?Math.min(bar.max,Math.floor(c)):0;bar.style.setProperty('--p',(d?Math.min(100,c/d*100):0)+'%');bar.disabled=!n;
