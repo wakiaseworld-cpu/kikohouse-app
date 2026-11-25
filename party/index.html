@@ -339,7 +339,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-19';
+const VER='2026.11.26-20';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -919,12 +919,12 @@ function openFind(q){
     // お気に入りのチャンネル（この機械に覚える）。☆で入れる・外す
     const favs=()=>{try{const a=JSON.parse(ls('favch')||'[]');return Array.isArray(a)?a:[];}catch(_){return [];}};
     const isFav=cid=>favs().some(x=>x.cid===cid);
-    const star=c=>{const b=btn('sstar',isFav(c.cid)?'★':'☆',e=>{e.stopPropagation();const a=favs().filter(x=>x.cid!==c.cid);if(!isFav(c.cid))a.unshift({cid:c.cid,title:c.title,thumb:c.thumb||''});ls('favch',JSON.stringify(a.slice(0,30)));b.textContent=isFav(c.cid)?'★':'☆';b.classList.toggle('on',isFav(c.cid));});b.classList.toggle('on',isFav(c.cid));b.setAttribute('aria-label','お気に入り');return b;};
-    const card=c=>{const b=el('div','schan');b.setAttribute('role','button');b.tabIndex=0;const im=el('img','sav');im.src=c.thumb||'';im.alt='';im.loading='lazy';const tx=el('span','stx');tx.append(el('b',null,c.title),el('small',null,c.subs?'登録者 '+nV(c.subs)+'人':'最近の動画を見る'));b.append(im,tx,star(c),el('span','sgo','›'));b.addEventListener('click',()=>openCh(c));return b;};
+    const star=c=>{const b=btn('sstar',isFav(c.cid)?'★':'☆',e=>{e.stopPropagation();const a=favs().filter(x=>x.cid!==c.cid);if(!isFav(c.cid))a.unshift({cid:c.cid,title:c.title,thumb:c.thumb||'',subs:c.subs||0,handle:c.handle||''});ls('favch',JSON.stringify(a.slice(0,30)));b.textContent=isFav(c.cid)?'★':'☆';b.classList.toggle('on',isFav(c.cid));});b.classList.toggle('on',isFav(c.cid));b.setAttribute('aria-label','お気に入り');return b;};
+    const card=c=>{const b=el('div','schan');b.setAttribute('role','button');b.tabIndex=0;const im=el('img','sav');im.src=c.thumb||'';im.alt='';im.loading='lazy';const tx=el('span','stx');tx.append(el('b',null,c.title),el('small',null,[c.handle||'',c.subs?'登録者 '+nV(c.subs)+'人':''].filter(Boolean).join('・')||'最近の動画を見る'));b.append(im,tx,star(c),el('span','sgo','›'));b.addEventListener('click',()=>openCh(c));return b;};
     const favView=()=>{last=null;res.textContent='';const a=favs();if(!a.length){res.append(el('div','sinfo','チャンネルの ☆ を押すと、ここに出ます'));fitSoon();return;}res.append(el('div','shead','お気に入りのチャンネル'));a.forEach(c=>res.append(card(c)));res.scrollTop=0;fitSoon();};
     // チャンネルの最近の動画（新しい順）
     const openCh=c=>{res.textContent='';const bk=btn('sback',last?'‹ 検索結果にもどる':'‹ お気に入りにもどる',()=>{if(last)show(last);else favView();});const hd=el('div','schd');const im=el('img','sav');im.src=c.thumb||'';im.alt='';hd.append(im,el('b',null,c.title+' の最近の動画'),star(c));res.append(bk,hd,el('div','sinfo','読み込んでいます…'));res.scrollTop=0;fitSoon();
-      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items);
+      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}if(j.channel&&isFav(c.cid)){const ch=j.channel;ls('favch',JSON.stringify(favs().map(x=>x.cid===c.cid?Object.assign(x,{title:ch.title||x.title,thumb:ch.thumb||x.thumb},ch.subs?{subs:ch.subs}:{},ch.handle?{handle:ch.handle}:{}):x)));}const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items);
         if(j.next){const mb=btn('smore','もっと見る',()=>{mb.replaceWith(el('div','sinfo','読み込んでいます…'));more(j.next);});res.append(mb);}fitSoon();}).catch(()=>{res.lastChild.remove();res.append(el('div','sinfo','うまく読み込めませんでした'));});
       more('');};
     FD={ov,fi,run,res,favView};}
