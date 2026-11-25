@@ -288,6 +288,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 .chip.self .dot{box-shadow:0 0 0 3px var(--card),0 0 0 6px var(--acc)!important}
 .chip.away .dot{opacity:.6}.chip.away .dot:after{background:#f5b700!important}
 .wrap.joining .stage{opacity:0}
+.toastline{position:relative;height:0;z-index:7}.toastline .toast{top:auto;bottom:6px;transform:translate(-50%,6px)}.toastline .toast.show{transform:translate(-50%,0)}
 .ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
 .wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
@@ -307,7 +308,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-9';
+const VER='2026.11.26-10';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -696,7 +697,8 @@ function notice(a,b){if(!a||!b||b.by===cid||!nameOf(b.by))return;const nm=nameOf
   if(a.state==='play'&&b.state==='pause')toast(nm+'が一時停止',b.by);
   else if(a.state!=='play'&&b.state==='play')toast(nm+'が再生',b.by);
   else if(Math.abs((b.pos||0)-exp(a))>2)toast(nm+'が'+fmt(b.pos)+'へ移動',b.by);}
-function toast(t,id){const w=$('wrap');if(!w)return;let b=$('toast');if(!b){b=el('div','toast');b.id='toast';w.append(b);}b.textContent='';
+// 知らせは動画にかぶらないよう、動画の枠のすぐ上に出す。全画面・小窓のときだけ動画の上に重ねる
+function toast(t,id){const w=$('wrap');if(!w)return;let b=$('toast');if(!b){b=el('div','toast');b.id='toast';}const host=document.body.classList.contains('fs')||document.fullscreenElement||pip?w:($('toastline')||w);if(b.parentNode!==host)host.append(b);b.textContent='';
   if(id){const m=id===cid?me():(S.members[id]||{});const d=el('i','dot');paintDot(d,nameOf(id),m.color,m.icon);b.append(d);}
   b.append(el('span',null,t));b.classList.remove('show');void b.offsetWidth;b.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>b.classList.remove('show'),2800);}
 // テレビの待ち受け（…/kikohouse-app/tv）：つないだ機械で部屋を開くと、テレビがその部屋へついてくる。
@@ -768,7 +770,7 @@ function build(){const A=$('app');A.textContent='';
   if(window.documentPictureInPicture){const pb=btn('tg','小窓',pipToggle);pb.id='pipb';tg.append(pb);}const tb=btn('tg','縦',()=>{if(S.now)markTall(S.now.vid,!isTall());});tb.id='tallb';tb.title='縦の動画を縦長で見る';
   tg.append(tb,btn('tg','全画面',fsToggle),btn('tg fnd','🔍',()=>openFind('')));opt.append(tg);
   const sl=btn('slnk','詳細設定',openSet);
-  PC.append(wrap,tt,by,bar,tm,ctl,opt,sl);
+  const tl=el('div','toastline');tl.id='toastline';PC.append(tl,wrap,tt,by,bar,tm,ctl,opt,sl);
   const AD=el('div','card'),u=el('div','url'),inp=el('input');inp.type='text';inp.enterKeyHint='go';inp.id='uin';inp.placeholder='URLを貼る';inp.autocomplete='off';
   const mini=el('div','mini');
   const go=m=>{if(m==='now'||!S.now||S.now.ended)autoPip();const pl=listOf(inp.value);if(pl){inp.value='';addList(pl,m,[...mini.querySelectorAll('button')]);return;}const id=vidOf(inp.value);if(!id){const v=inp.value.trim();if(v){inp.value='';openFind(v);}else inp.focus();return;}if(/\/shorts\//.test(inp.value))markTall(id,true);inp.value='';if(m==='now'||!S.now||S.now.ended)tapLoad(id,0);add(id,m);if(m==='now'&&P&&ready){try{P.playVideo();}catch(_){}}};
