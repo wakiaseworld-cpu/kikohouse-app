@@ -300,6 +300,8 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 .hsec .htb{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
 .hsec .htb td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top;color:var(--sub)}
 .hsec .htb td+td{font-weight:700;color:var(--ink)}
+.hsec .htb td:nth-child(3){font-weight:500;color:var(--sub);font-size:12.5px}
+.hsec .htb tr:first-child td:nth-child(3){font-weight:700}
 .hsec .himg{display:block;width:100%;max-width:420px;margin:8px auto 10px;border-radius:12px;box-shadow:0 0 0 1px var(--line)}
 .ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
@@ -835,10 +837,16 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
     const tx=(n,str)=>{String(str).split(/(\[PIP\]|\[AP\])/).forEach(p=>{const m=p.match(/^\[(PIP|AP)\]$/);if(m){const k=el('span','pipic');k.innerHTML=SVG[m[1]];n.append(k);}else if(p)n.append(p);});return n;};
     const H=(t,L)=>{const d=el('details','hsec');d.append(el('summary',null,t));let ol=null,tb=null;L.forEach(x=>{
       if(/^1:/.test(x)){if(!ol){ol=el('ol','hol');d.append(ol);}ol.append(tx(el('li'),x.slice(2)));return;}ol=null;
-      if(/^q:/.test(x)){if(!tb){tb=el('table','htb');d.append(tb);}const [a,b]=x.slice(2).split('|'),tr=el('tr');tr.append(tx(el('td'),a),tx(el('td'),b));tb.append(tr);return;}tb=null;
+      if(/^q:/.test(x)){if(!tb){tb=el('table','htb');d.append(tb);}const tr=el('tr');x.slice(2).split('|').forEach(c=>tr.append(tx(el('td'),c)));tb.append(tr);return;}tb=null;
       if(/^IMG:/.test(x)){const im=el('img','himg');im.src='help/'+x.slice(4)+'?v='+VER;im.alt='';im.loading='lazy';d.append(im);return;}
       if(/^s:/.test(x)){d.append(tx(el('p','hs'),x.slice(2)));return;}
       d.append(tx(el('p','hb'),x));});bx.append(d);};
+    if(dev==='t'){
+      H('どの方法で映す？',['q:方法|使う機械|特徴','q:テレビのブラウザ（待ち受け）|テレビだけ|一度つなげば、部屋を開くだけで映ります。広告が出ることがあります','q:キャスト（Chromecast）|Chromebook・パソコンのChrome|YouTubeにログインしていれば、広告は出ません','q:AirPlay（画面ミラーリング）|iPhone|iPhoneの画面がそのまま映ります']);
+      H('テレビのブラウザで（待ち受け）',['IMG:tvwait.jpg','1:テレビのブラウザで wakiaseworld-cpu.github.io/kikohouse-app/tv を開きます','1:出てきた番号を、iPhoneやパソコンの「詳細設定」→「テレビとつなぐ」に入れます','IMG:i_tvset.jpg','あとは部屋を開くだけで、テレビに映ります。','s:つなぐのは最初の1回だけです。音が出ないときは、リモコンのボタンを1回押してください。']);
+      H('キャスト（Chromecast）',['1:Chromeの ⋮ を押します','1:「保存して共有」→「キャスト…」を押します','1:テレビを選びます','s:今のタブがそのままテレビに映ります。Chromebookで Brave などを使っているときは、右下の時計のところ →「キャスト」で画面全体を映せます。']);
+      H('AirPlay（画面ミラーリング）',['1:コントロールセンターを開きます','1:「画面ミラーリング」でテレビを選びます','1:iPhoneを横にして、ページの「全画面」を押します','s:iPhoneの画面がそのままテレビに映ります。']);
+      return;}
     const G=n=>'IMG:'+(I?'i_':'o_')+n+'.jpg';
     H('友だちを呼ぶ',[G('call')]);
     H('動画を入れる',[G('add'),'q:今すぐ|すぐに再生されます','q:次に再生|今の動画が終わったら再生されます','q:後で再生|最後に再生されます']);
@@ -850,9 +858,9 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
     if(I)H('小窓で見る',['1:動画に触れます','1:点線の丸を押します','1:[PIP] を押します']);
     else{H('小窓で見る',['「小窓」ボタンを押します。','s:パソコンのChromeだけで使えます。詳細設定の「自動小窓」をオンにすると、再生したときに自動で小窓になります。']);
       H('キーボード',['q:スペース / K|再生・停止','q:← / J|10秒戻す','q:→ / L|10秒進む','q:Shift＋N|次へ','q:Shift＋P|前へ','q:M|音を消す','q:F|全画面','q:C|字幕']);}
-    H('テレビで見る',['IMG:tvwait.jpg','1:テレビのブラウザで wakiaseworld-cpu.github.io/kikohouse-app/tv を開きます','1:出てきた番号を、ここに入れます',G('tvset'),'あとは部屋を開くだけで、テレビに映ります。','s:つなぐのは最初の1回だけです。'].concat(I?[]:['s:Chromebookなら、Chromeの ⋮ →「保存して共有」→「キャスト」でも映せます。']));
+    H('テレビで見る',['テレビで見るときは、上の「テレビ」を押してください。']);
     H('困ったとき',['q:音が出ない|「消音」を押してください','q:「▶ を押してください」と出た|▶ を押してください','q:ずっと読み込み中|ページを開き直してください','q:流せない動画|⏭ で次へ進んでください','q:おかしな動きをした|詳細設定 →「動きの記録」を画面写真で送ってください']);};
-  [['i','iPhone'],['o','パソコン']].forEach(([d,t])=>{const b=btn('tg',t,()=>paint(d));b.dataset.d=d;tb.append(b);});
+  [['i','iPhone'],['o','パソコン'],['t','テレビ']].forEach(([d,t])=>{const b=btn('tg',t,()=>paint(d));b.dataset.d=d;tb.append(b);});
   paint(ls('hdev')||(iOS?'i':'o'));ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 // さがす画面：動画がまるごと見える位置までスクロールして、その下に画面を出す
 let FD=null;
