@@ -320,7 +320,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-15';
+const VER='2026.11.26-16';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -489,14 +489,14 @@ function checkStart(){const n=S.now;if(!n||n.state!=='wait'||!ref)return;
 // 流れていないあいだは「今どうなっているか」と「どうしたらいいか」を出して、押すボタンを光らせる
 function paintStat(){const el2=$('stat');if(!el2)return;const n=S.now;let st=null;try{st=P&&ready?P.getPlayerState():null;}catch(_){}
   let t='',sub='',bg=false,spin=false,mini=false,who=false,glow='';
-  if(!conn){t='つながっていません';sub='電波を確認してね';bg=!(st===1||st===2);}
+  if(!conn){t='つながっていません';sub='電波を確認してください';bg=!(st===1||st===2);}
   else if(perr&&n&&perr.vid===n.vid){t=perr.code===101||perr.code===150?'この動画はここでは流せません':perr.code===100?'動画が見つかりません':'読み込めませんでした';sub='⏭ で次へ';bg=true;glow='next';}
-  else if(!n){t='YouTubeのURLを貼ってね';bg=true;glow='url';}
-  else if(needTap){t='▶ を押してね';sub='次の動画に切りかえます';bg=true;glow='pp';}
+  else if(!n){t='YouTubeのURLを貼ってください';bg=true;glow='url';}
+  else if(needTap){t='▶ を押してください';sub='次の動画に切りかえます';bg=true;glow='pp';}
   else if(n.state==='wait'){t='みんなを待っています（あと'+Math.max(0,15-Math.floor((now()-(n.at||0))/1000))+'秒）';bg=true;spin=true;who=true;}
-  else if(n.ended){t='おわり';sub='次の動画を追加してね';bg=true;glow='url';}
+  else if(n.ended){t='おわり';sub='次の動画を追加してください';bg=true;glow='url';}
   else if(n.state==='play'&&(n.at||0)>now()){t='まもなく始まります';spin=true;bg=st!==2;}
-  else if(n.state==='play'){if(st!==1){if(stuck>=3&&st!==3){t='▶ を押してね';mini=true;glow='pp';}else{t='読み込み中';sub='そのまま待ってね';spin=true;bg=false;mini=true;}}
+  else if(n.state==='play'){if(st!==1){if(stuck>=3&&st!==3){t='▶ を押してください';mini=true;glow='pp';}else{t='読み込み中';sub='そのままお待ちください';spin=true;bg=false;mini=true;}}
     else if(forced){t='音なし：画面のどこかをさわると音が出ます';mini=true;glow='';}}
   else if(n.state==='pause'){t=(n.by===cid?'自分':nameOf(n.by)||'だれか')+'が止めました';sub='続きは ▶';bg=st===null||st===-1||st===5;mini=!bg;glow='pp';}
   // 読み込み中のまま10秒たったら読み込み直す
@@ -622,7 +622,7 @@ function openSet(){const ov=el('div','ov'),sh=el('div','sheet sset');sh.append(e
   const lv=btn('pk off','退出',()=>{ov.remove();leave();});
   const lg=btn('pk','動きの記録（調べる用）',()=>{const ov2=el('div','ov'),s2=el('div','sheet hsheet'),hd=el('div','fhd');hd.append(el('b',null,'動きの記録'),btn('ic','✕',()=>ov2.remove()));
     const pre=el('pre','logpre',logA.slice().reverse().join('\n')||'まだありません');const cp=btn('pk','コピー',()=>{(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(pre.textContent):Promise.reject()).then(()=>{cp.textContent='コピーしました';},()=>{});});
-    const bx=el('div','hbody');bx.append(el('div','rs','版 '+VER+'　新しい順。おかしな動きのあとに、ここを画面写真かコピーで送ってね'),cp,pre);s2.append(hd,bx);ov2.append(s2);ov2.addEventListener('click',e=>{if(e.target===ov2)ov2.remove();});document.body.append(ov2);});
+    const bx=el('div','hbody');bx.append(el('div','rs','版 '+VER+'　新しい順。おかしな動きのあとに、ここを画面写真かコピーで送ってください'),cp,pre);s2.append(hd,bx);ov2.append(s2);ov2.addEventListener('click',e=>{if(e.target===ov2)ov2.remove();});document.body.append(ov2);});
   if(!TVD&&!TVP){const tr=el('div','srow');const tb=btn('tg'+(ls('tvlink')?' on':''),ls('tvlink')?'つないでいる':'つなぐ',()=>{ov.remove();tvPair();});tr.append(el('span',null,'テレビとつなぐ（待ち受け）'),tb);sh.append(tr);}
   // この機械だけ、ほかの機械とまとまった「同じ人」から分かれて入りなおす（もとの人はほかの機械にそのまま残る）
   const sp=btn('pk','この機械を別の人として入りなおす',()=>{if(!confirm('この機械だけを別の人として入りなおします。次の画面で、もう片方とちがう名前を入れてください。'))return;ov.remove();leaving=true;try{ref&&ref.child('members/'+cid).onDisconnect().cancel();}catch(_){}ls('cid',null);ls('name',null);ls('icon',null);ls('dots',null);location.reload();});
@@ -795,7 +795,7 @@ function build(){const A=$('app');A.textContent='';
   const rel=btn('ic','↻',()=>loadWl()),chg=btn('ic','変更',()=>{if(confirm('みたいものリストの登録をやめて、別の再生リストにしますか？'))setWl('');});rel.id='wlrel';chg.id='wlchg';rel.setAttribute('aria-label','読み込み直す');
   wh.append(el('h2',null,'みたいものリスト'),rel,chg);wi.type='text';wi.placeholder='YouTubeの再生リストのURL';wi.autocomplete='off';wi.enterKeyHint='done';
   const reg2=()=>{if(setWl(wi.value.trim()))wi.value='';};wi.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();reg2();}});
-  wu.append(wi,btn('ic go','登録',reg2));wf.append(el('p',null,'YouTubeの再生リストのURLを登録すると、自分だけが見える状態でリストの中身をここで開ける'),el('p',null,'見たい動画をここから選んですぐ入れられる'),wu);W.append(wh,wf,wr);W.classList.add('g-side');
+  wu.append(wi,btn('ic go','登録',reg2));wf.append(el('p',null,'YouTubeの再生リストのURLを登録すると、自分だけが見える状態でリストの中身をここで開けます。'),el('p',null,'見たい動画をここから選んで、すぐ入れられます。'),wu);W.append(wh,wf,wr);W.classList.add('g-side');
   top.classList.add('g-top');er.classList.add('g-top');M.classList.add('g-side');PC.classList.add('g-play');AD.classList.add('g-side');Q.classList.add('g-side');R.classList.add('g-side');
   const vr=el('div','ver','版 '+VER);vr.classList.add('g-side');A.append(top,er,M,PC,Q,AD,W,R,vr);dragInit(Q);make(stage);}
 function paintTime(){const n=S.now,bar=$('bar');if(!bar||drag)return;
@@ -807,7 +807,7 @@ function kick(id,m){const ov=el('div','ov'),sh=el('div','sheet kick'),d=el('i','
   const hd=el('div','khd');hd.append(d,el('b',null,m.name||''));
   const bs=el('div','cbtn');bs.append(btn('pk','やめる',()=>ov.remove()),btn('big','退出させる',()=>{ov.remove();if(ref)ref.child('members/'+id).remove();}));
   sh.append(hd,bs);ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
-function chip(id,m){const c=el('span','chip'+(shown(id,m)?'':away(id,m)?' away':' off')),d=el('i','dot');if(away(id,m))c.title='バックグラウンド再生かも';paintDot(d,m.name,m.color,m.icon);
+function chip(id,m){const c=el('span','chip'+(shown(id,m)?'':away(id,m)?' away':' off')),d=el('i','dot');if(away(id,m))c.title='バックグラウンド再生中かもしれません';paintDot(d,m.name,m.color,m.icon);
   const pa=popAt[id],pt=pa?Date.now()-pa.t:1e9;if(pt<900){c.classList.add('pop-'+pa.k);d.style.animationDelay=-pt+'ms';}c.append(d,document.createTextNode(m.name||''));
   if(id===cid){c.classList.add('self');c.title='名前を変える';c.style.cursor='pointer';c.addEventListener('click',()=>askName(()=>{const v=me();if(ref)Promise.resolve(ref.child('members/'+cid).update({name:v.name,color:v.color,icon:v.icon||null,dots:v.dots||null})).then(()=>{wantMerge=true;merge();wantMerge=false;});},true));}
   else{c.style.cursor='pointer';c.addEventListener('click',()=>kick(id,m));}return c;}
@@ -837,17 +837,17 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
       d.append(tx(el('p','hb'),x));});bx.append(d);};
     const G=n=>'IMG:'+(I?'i_':'o_')+n+'.jpg';
     H('友だちを呼ぶ',[G('call')]);
-    H('動画を入れる',[G('add'),'q:今すぐ|今すぐ再生される','q:次に再生|今の動画が終わったら再生される','q:後で再生|最後に再生される']);
-    H('動画検索',[G('find'),'s:YouTubeの動画をさがして、そのまま入れられる']);
-    H('ボタン',[G('ctl'),G('opt'),'このボタンで操作したときだけ、みんなの動画も同じように動く',I?'s:YouTubeの画面（全画面など）で止めたり進めたりしても、みんなの動画は変わらない。自分の動画もすぐ元にもどる':'s:動画の上（YouTubeのボタン）やイヤホンのボタンで操作しても、みんなの動画は変わらない。自分の動画もすぐ元にもどる']);
-    H('見てる人',[G('mem'),'s:自分の丸を押すと、名前やアイコンを変えられる']);
-    H('通知',['IMG:toast.jpg','誰かが操作したとき・動画を追加したとき・入ってきたときに通知が出る','s:（ピクチャインピクチャなど、一部の画面では出ない）']);
-    H('みたいものリスト',[G('wl'),'YouTubeの再生リストのURLを登録すると、自分だけが見える状態でリストの中身をここで開ける','見たい動画をここから選んですぐ入れられる']);
-    if(I)H('小窓で見る',['1:動画をさわる','1:点線の丸を押す','1:[PIP] を押す']);
-    else{H('小窓で見る',['「小窓」ボタンを押す','s:パソコンのChromeだけ。詳細設定の「自動小窓」をオンにすると、再生したら自動で小窓になる']);
+    H('動画を入れる',[G('add'),'q:今すぐ|すぐに再生されます','q:次に再生|今の動画が終わったら再生されます','q:後で再生|最後に再生されます']);
+    H('動画検索',[G('find'),'s:YouTubeの動画を探して、そのまま入れられます。']);
+    H('ボタン',[G('ctl'),G('opt'),'このボタンで操作したときだけ、みんなの動画も同じように動きます。',I?'s:YouTubeの画面（全画面など）で止めたり進めたりしても、みんなの動画は変わりません。自分の動画もすぐ元に戻ります。':'s:動画の上（YouTubeのボタン）やイヤホンのボタンで操作しても、みんなの動画は変わりません。自分の動画もすぐ元に戻ります。']);
+    H('見ている人',[G('mem'),'s:自分の丸を押すと、名前やアイコンを変えられます。']);
+    H('通知',['IMG:toast.jpg','誰かが操作したとき・動画を追加したとき・入ってきたときに、通知が出ます。','s:（ピクチャインピクチャなど、一部の画面では出ません）']);
+    H('みたいものリスト',[G('wl'),'YouTubeの再生リストのURLを登録すると、自分だけが見える状態でリストの中身をここで開けます。','見たい動画をここから選んで、すぐ入れられます。']);
+    if(I)H('小窓で見る',['1:動画に触れます','1:点線の丸を押します','1:[PIP] を押します']);
+    else{H('小窓で見る',['「小窓」ボタンを押します。','s:パソコンのChromeだけで使えます。詳細設定の「自動小窓」をオンにすると、再生したときに自動で小窓になります。']);
       H('キーボード',['q:スペース / K|再生・停止','q:← / J|10秒戻す','q:→ / L|10秒進む','q:Shift＋N|次へ','q:Shift＋P|前へ','q:M|音を消す','q:F|全画面','q:C|字幕']);}
-    H('テレビで見る',['IMG:tvwait.jpg','1:テレビのブラウザで wakiaseworld-cpu.github.io/kikohouse-app/tv を開く','1:出てきた番号を、ここに入れる',G('tvset'),'あとは部屋を開くだけで、テレビに映る','s:つなぐのは最初の1回だけ'].concat(I?[]:['s:Chromebookなら、Chromeの ⋮ →「保存して共有」→「キャスト」でも映せる']));
-    H('困ったとき',['q:音が出ない|「消音」を押す','q:「▶ を押してね」と出た|▶ を押す','q:ずっと読み込み中|ページを開き直す','q:流せない動画|⏭ で次へ','q:なんか変な動きをした|詳細設定 →「動きの記録」を画面写真で送る']);};
+    H('テレビで見る',['IMG:tvwait.jpg','1:テレビのブラウザで wakiaseworld-cpu.github.io/kikohouse-app/tv を開きます','1:出てきた番号を、ここに入れます',G('tvset'),'あとは部屋を開くだけで、テレビに映ります。','s:つなぐのは最初の1回だけです。'].concat(I?[]:['s:Chromebookなら、Chromeの ⋮ →「保存して共有」→「キャスト」でも映せます。']));
+    H('困ったとき',['q:音が出ない|「消音」を押してください','q:「▶ を押してください」と出た|▶ を押してください','q:ずっと読み込み中|ページを開き直してください','q:流せない動画|⏭ で次へ進んでください','q:おかしな動きをした|詳細設定 →「動きの記録」を画面写真で送ってください']);};
   [['i','iPhone'],['o','パソコン']].forEach(([d,t])=>{const b=btn('tg',t,()=>paint(d));b.dataset.d=d;tb.append(b);});
   paint(ls('hdev')||(iOS?'i':'o'));ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 // さがす画面：動画がまるごと見える位置までスクロールして、その下に画面を出す
@@ -897,9 +897,9 @@ const WL={id:ls('wl')||'',items:[],busy:false,err:'',n:20};try{WL.items=JSON.par
 function loadWl(){if(!WL.id||WL.busy)return;WL.busy=true;WL.err='';paintWl();const id=WL.id,old={};WL.items.forEach(x=>{if(x&&x.title)old[x.vid]=x.title;});
   playlist(id).then(ids=>{const need=ids.filter(v=>!old[v]);return titles(need).then(ts=>{need.forEach((v,i)=>{old[v]=ts[i]||'';});return ids.map(v=>({vid:v,title:old[v]||''}));});})
     .then(items=>{if(WL.id!==id)return;WL.items=items;ls('wli',JSON.stringify(items));})
-    .catch(()=>{if(WL.id===id)WL.err='読み込めませんでした。再生リストが「公開」か「限定公開」になっているか確かめてね。';})
+    .catch(()=>{if(WL.id===id)WL.err='読み込めませんでした。再生リストが「公開」か「限定公開」になっているか確かめてください。';})
     .finally(()=>{WL.busy=false;paintWl();});}
-function setWl(u){const id=listOf(u)||(/^[\w-]{12,}$/.test(String(u||'').trim())?String(u).trim():'');if(u&&!id){WL.err='再生リストのURLを貼ってね（list= が入っているURL）';paintWl();return false;}
+function setWl(u){const id=listOf(u)||(/^[\w-]{12,}$/.test(String(u||'').trim())?String(u).trim():'');if(u&&!id){WL.err='再生リストのURLを貼ってください（list= が入っているURL）';paintWl();return false;}
   WL.id=id;WL.items=[];WL.n=20;WL.err='';ls('wl',id||null);ls('wli',null);paintWl();loadWl();return true;}
 function paintWl(){const L=$('wlr');if(!L)return;L.textContent='';const has=!!WL.id;$('wlf').hidden=has;$('wlrel').hidden=$('wlchg').hidden=!has;
   if(WL.err)L.append(el('div','empty',WL.err));if(!has)return;
