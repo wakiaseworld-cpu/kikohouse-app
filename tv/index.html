@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>動画同時視聴</title>
+<style>html,body{margin:0;height:100%;background:#111;color:#eee;font:20px/1.6 system-ui,sans-serif}main{display:grid;place-items:center;height:100%;text-align:center;padding:0 24px}</style>
+</head><body><main id="m">部屋を開いています…</main>
+<script>
+// テレビなどで、最後に開いた動画同時視聴の部屋へ移る（長いURLを毎回入力しなくてすむように）
+var r='';try{r=localStorage.getItem('dp-lastroom')||'';}catch(e){}
+if(/^[A-Za-z0-9]{24,64}$/.test(r))location.replace('../party/#'+r);
+else document.getElementById('m').textContent='まだこの機械で部屋を開いたことがありません。一度、もらった部屋のURLから開いてください。';
+</script></body></html>

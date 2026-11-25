@@ -303,7 +303,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.25-6';
+const VER='2026.11.25-7';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -320,6 +320,8 @@ const thumb=id=>'https://i.ytimg.com/vi/'+id+'/mqdefault.jpg';
 const fmt=s=>{s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=String(s%60).padStart(2,'0');return h?h+':'+String(m).padStart(2,'0')+':'+x:m+':'+x;};
 const arr=v=>Array.isArray(v)?v.filter(Boolean):(v&&typeof v==='object'?Object.values(v).filter(Boolean):[]);
 const md=()=>{const d=new Date();return (d.getMonth()+1)+'/'+d.getDate();};
+// 最後に開いた部屋を覚える（テレビなどで …/kikohouse-app/tv を開くと、ここに戻ってこられる）
+if(ROOM)ls('lastroom',ROOM);
 let cid=ls('cid');if(!cid){cid='c'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);ls('cid',cid);}
 
 if(!ROOM){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>もらったURLから開いてください</div>';}
