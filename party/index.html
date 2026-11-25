@@ -302,7 +302,7 @@ body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100v
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.25-2';
+const VER='2026.11.25-3';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -575,7 +575,9 @@ document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.isC
   if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;
   if([...document.querySelectorAll('.ov')].some(o=>!o.hidden))return;
   const k=e.key.length===1?e.key.toLowerCase():e.key,sh=e.shiftKey,q=s=>{const b=typeof s==='string'?document.querySelector(s):s;if(b&&!b.disabled)b.click();};
-  const act={' ':()=>q('#pp'),k:()=>q('#pp'),ArrowLeft:()=>q('#kb10'),j:()=>q('#kb10'),ArrowRight:()=>q('#kf10'),l:()=>q('#kf10'),m:()=>q('#mute'),f:()=>fsToggle(),c:()=>q('#cc')};
+  // Android（テレビのリモコンなど）では、左右キーはボタンを選ぶのに使うので、10秒戻す・進むにしない
+  const tvk=/Android/i.test(navigator.userAgent);
+  const act={' ':()=>q('#pp'),k:()=>q('#pp'),ArrowLeft:tvk?null:()=>q('#kb10'),j:()=>q('#kb10'),ArrowRight:tvk?null:()=>q('#kf10'),l:()=>q('#kf10'),m:()=>q('#mute'),f:()=>fsToggle(),c:()=>q('#cc')};
   let f=sh?(k==='n'?()=>q('.k.next'):k==='p'?()=>q('.k.prev'):null):act[k];if(!f)return;
   e.preventDefault();if(t&&t.tagName==='BUTTON')t.blur();f();});
 // 詳細設定
@@ -884,7 +886,8 @@ setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
     if(stuck>3&&stuck%5===0&&!document.hidden){forced=true;plog('止まったまま：音なしで流しなおす');try{P.mute();P.playVideo();}catch(_){}}if(stuck>=3)paint();}
   if(!(n.state==='play'&&st===1))setRate(1);},1000);
 // 音なしで流しているとき（ブラウザに止められたとき）は、画面のどこかをさわったら音を戻す
-document.addEventListener('pointerdown',()=>{if(!forced||!P||!ready)return;forced=false;sound();const n=S.now;if(n&&n.state==='play'){try{P.playVideo();}catch(_){}}paint();},true);
+// テレビ（Nebulaなど）のリモコンは「さわった」にならないので、キーを押したときも音を戻す
+{const back=()=>{if(!forced||!P||!ready)return;forced=false;plog('さわった・キーを押した：音を戻す');sound();const n=S.now;if(n&&n.state==='play'){try{P.playVideo();}catch(_){}}paint();};document.addEventListener('pointerdown',back,true);document.addEventListener('keydown',e=>{if(e.key!=='Escape')back();},true);}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip&&!iOS)applying=Date.now()+864e5;}else{applying=0;apply();beat();}putBg();});
 
 const go=()=>{if(!window.firebase){$('app').innerHTML='<div class="nokey"><b>動画同時視聴</b>読み込めませんでした</div>';return;}build();start();paint();setTimeout(loadWl,2500);};
