@@ -258,9 +258,8 @@ h2{background:none!important;color:var(--ink)!important;clip-path:none!important
 .cols button.on{outline:3px solid var(--acc)!important;outline-offset:3px}
 body.fs .fsx,.wrap:fullscreen .fsx{background:rgba(0,0,0,.6)!important}
 .fsx{transition:opacity .3s}.fsx.fxh{opacity:0!important;pointer-events:none!important}
-.fsclk{display:none;position:absolute;z-index:6;color:rgba(255,255,255,.88);font-weight:700;font-size:17px;line-height:1.2;font-variant-numeric:tabular-nums;pointer-events:none;transition:opacity .3s}
+.fsclk{display:none;position:absolute;z-index:6;color:#fff;background:rgba(0,0,0,.6);border:2px solid #fff;padding:2px 11px;border-radius:999px;font-weight:700;font-size:15px;white-space:nowrap;line-height:1.2;font-variant-numeric:tabular-nums;pointer-events:none;transition:opacity .3s}
 body.fs .fsclk,.wrap:fullscreen .fsclk{display:block}
-.fsclk.fsov{background:rgba(0,0,0,.55);padding:3px 12px;border-radius:999px;font-size:15px}
 .fsclk.fxh{opacity:0}
 .k.ico:after{filter:var(--icoF)!important}
 html,body{background-color:#eef4fc!important;background-image:radial-gradient(#fff 3px,transparent 3.5px),radial-gradient(#d3e4fa 3px,transparent 3.5px)!important;background-size:26px 26px!important;background-position:0 0,13px 13px!important}.k,.tg,.ic,.pk,.mini button,.lnk,.tg.on,.mini button.go,.ic.go,.big,.url input,.frow input,.sheet input,#nm{border-radius:999px!important}.card{border-radius:22px!important}
@@ -615,7 +614,7 @@ let fxT=0;function fxShow(){const x=$('fsx');if(!x)return;fsClk();x.classList.re
 function fsClk(){const k=$('fsclk'),w=$('wrap');if(!k||!w)return;const d=new Date();k.textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
   const W=w.offsetWidth,H=w.offsetHeight;if(!W||!H)return;const a=w.classList.contains('tall')?9/16:16/9,vw=Math.min(W,H*a),vh=vw/a,sb=(W-vw)/2,tb=(H-vh)/2;
   k.style.cssText='';k.classList.remove('fsov');
-  if(sb>=56){k.style.right='0';k.style.width=sb+'px';k.style.top='14px';k.style.textAlign='center';}
+  if(sb>=56){k.style.right=(sb/2)+'px';k.style.top='14px';k.style.transform='translateX(50%)';}
   else if(tb>=30){k.style.right='14px';k.style.top=(tb/2)+'px';k.style.transform='translateY(-50%)';}
   else{k.classList.add('fsov');k.style.right='14px';k.style.top='12px';}}
 setInterval(()=>{if(document.body.classList.contains('fs')||document.fullscreenElement||document.webkitFullscreenElement){fsClk();}},5000);
