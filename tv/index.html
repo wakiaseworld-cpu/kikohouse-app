@@ -1,11 +1,41 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>動画同時視聴</title>
-<style>html,body{margin:0;height:100%;background:#111;color:#eee;font:20px/1.6 system-ui,sans-serif}main{display:grid;place-items:center;height:100%;text-align:center;padding:0 24px}</style>
-</head><body><main id="m">部屋を開いています…</main>
+<title>動画同時視聴（テレビ）</title>
+<style>
+html,body{margin:0;height:100%;background:#111;color:#eee;font:22px/1.6 "Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+main{display:grid;place-items:center;align-content:center;gap:18px;height:100%;text-align:center;padding:0 24px;box-sizing:border-box}
+h1{font-size:30px;margin:0;color:#fff}
+.code{font:800 72px/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;color:#ffd23f}
+.sub{color:#aab;font-size:18px;max-width:900px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#2ecc71;margin-right:8px;vertical-align:middle;animation:b 1.6s ease-in-out infinite}
+@keyframes b{50%{opacity:.25}}
+.ver{position:fixed;right:14px;bottom:10px;font-size:12px;color:#556}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head><body><main id="m"><h1><span class="dot"></span>テレビの待ち受け</h1><div id="st" class="sub">準備しています…</div></main><div class="ver">版 2026.11.26-1</div>
 <script>
-// テレビなどで、最後に開いた動画同時視聴の部屋へ移る（長いURLを毎回入力しなくてすむように）
-var r='';try{r=localStorage.getItem('dp-lastroom')||'';}catch(e){}
-if(/^[A-Za-z0-9]{24,64}$/.test(r))location.replace('../party/#'+r);
-else document.getElementById('m').textContent='まだこの機械で部屋を開いたことがありません。一度、もらった部屋のURLから開いてください。';
+// テレビの待ち受け：つないだ機械（iPhone・Chromebookなど）で動画同時視聴の部屋を開くと、ここが自動でその部屋に入って全画面で映す。
+// つなぎ方：ここに出る6けたの番号を、機械の「詳細設定 → テレビとつなぐ」で入れる（機械ごとに1回だけ）
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var ls=function(k,v){try{if(v===undefined)return localStorage.getItem('dp-'+k);localStorage.setItem('dp-'+k,String(v));}catch(e){}return null;};
+  var ok=function(s){return /^[A-Za-z0-9]{24,64}$/.test(s||'');};
+  var key=ls('tvkey');
+  if(!ok(key)){var a='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789',k='';for(var i=0;i<32;i++)k+=a.charAt(Math.floor(Math.random()*a.length));key=k;ls('tvkey',key);}
+  var go=function(room){location.replace('../party/?tv=1&tvk='+key+'#'+room);};
+  if(!window.firebase){var last=ls('lastroom');if(ok(last)){go(last);return;}$('st').textContent='読み込めませんでした。ページを読み込みなおしてください。';return;}
+  var app=firebase.apps.length?firebase.apps[0]:firebase.initializeApp({apiKey:'AIzaSyCmHJLuKoEXS2lYhl6d-ms2N0Xa3ExiF0s',authDomain:'kikohouse-943cf.firebaseapp.com',projectId:'kikohouse-943cf',appId:'1:340471681800:web:0868f848740206b4a812bd',databaseURL:'https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app'});
+  var db=app.database();
+  // つなぐ番号（6けた）：開くたびに新しく作る。ページを閉じたら消える
+  var code=String(Math.floor(100000+Math.random()*900000));
+  var pr=db.ref('party/TVPAIR0000000000000000'+code+'/p');
+  pr.onDisconnect().remove();
+  pr.set({key:key,at:firebase.database.ServerValue.TIMESTAMP}).then(function(){
+    $('m').innerHTML='<h1><span class="dot"></span>テレビの待ち受け</h1><div class="sub">iPhoneやChromebookの動画同時視聴で<br>「詳細設定」→「テレビとつなぐ」に、この番号を入れてください</div><div class="code">'+code.slice(0,3)+' '+code.slice(3)+'</div><div class="sub">つないだ機械で部屋を開くと、ここに自動で映ります（つなぐのは機械ごとに1回だけ）</div>';
+  },function(){$('st').textContent='待ち受けを始められませんでした（'+(location.host)+'）。ページを読み込みなおしてください。';});
+  // つないだ機械が部屋を開いたら、その部屋へ
+  // （3時間より前に開いた部屋にはついていかない。待ち受けの番号を見られるように）
+  db.ref('party/'+key+'/tvlink').on('value',function(s){var v=s.val();if(v&&ok(v.room)&&Number(v.at||0)>Date.now()-3*3600e3)go(v.room);});
+})();
 </script></body></html>

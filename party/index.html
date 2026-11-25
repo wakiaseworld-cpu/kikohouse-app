@@ -303,7 +303,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.25-9';
+const VER='2026.11.26-1';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -603,6 +603,7 @@ function openSet(){const ov=el('div','ov'),sh=el('div','sheet sset');sh.append(e
   const lg=btn('pk','動きの記録（調べる用）',()=>{const ov2=el('div','ov'),s2=el('div','sheet hsheet'),hd=el('div','fhd');hd.append(el('b',null,'動きの記録'),btn('ic','✕',()=>ov2.remove()));
     const pre=el('pre','logpre',logA.slice().reverse().join('\n')||'まだありません');const cp=btn('pk','コピー',()=>{(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(pre.textContent):Promise.reject()).then(()=>{cp.textContent='コピーしました';},()=>{});});
     const bx=el('div','hbody');bx.append(el('div','rs','版 '+VER+'　新しい順。おかしな動きのあとに、ここを画面写真かコピーで送ってね'),cp,pre);s2.append(hd,bx);ov2.append(s2);ov2.addEventListener('click',e=>{if(e.target===ov2)ov2.remove();});document.body.append(ov2);});
+  if(!TVD&&!TVP){const tr=el('div','srow');const tb=btn('tg'+(ls('tvlink')?' on':''),ls('tvlink')?'つないでいる':'つなぐ',()=>{ov.remove();tvPair();});tr.append(el('span',null,'テレビとつなぐ（待ち受け）'),tb);sh.append(tr);}
   const bs=el('div','sbtns');bs.append(lg,lv);sh.append(bs,btn('big','とじる',()=>ov.remove()));
   ov.append(sh);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.append(ov);}
 function pipToggle(){if(pip){pip.close();return;}pipOpen();}
@@ -689,9 +690,19 @@ function notice(a,b){if(!a||!b||b.by===cid||!nameOf(b.by))return;const nm=nameOf
 function toast(t,id){const w=$('wrap');if(!w)return;let b=$('toast');if(!b){b=el('div','toast');b.id='toast';w.append(b);}b.textContent='';
   if(id){const m=id===cid?me():(S.members[id]||{});const d=el('i','dot');paintDot(d,nameOf(id),m.color,m.icon);b.append(d);}
   b.append(el('span',null,t));b.classList.remove('show');void b.offsetWidth;b.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>b.classList.remove('show'),2800);}
+// テレビの待ち受け（…/kikohouse-app/tv）：つないだ機械で部屋を開くと、テレビがその部屋へついてくる。
+// 知らせは party/<テレビの鍵>/tvlink に {room, at}。テレビ側のページ（?tvk=鍵）は、ちがう部屋の知らせが来たら移る
+const TVK=((location.search.match(/[?&]tvk=([A-Za-z0-9]{24,64})/)||[])[1])||'';
+function tvTell(db){const k=ls('tvlink');if(!k||TVK||TVD||TVP||!/^[A-Za-z0-9]{24,64}$/.test(k))return;try{db.ref('party/'+k+'/tvlink').set({room:ROOM,at:firebase.database.ServerValue.TIMESTAMP});plog('テレビに部屋を知らせた');}catch(_){}}
+function tvFollow(db){if(!TVK)return;db.ref('party/'+TVK+'/tvlink').on('value',s=>{const v=s.val();if(v&&v.room&&v.room!==ROOM&&/^[A-Za-z0-9]{24,64}$/.test(v.room)){plog('つないだ機械が別の部屋を開いた：移る');location.replace(location.pathname+'?tv=1&tvk='+TVK+'#'+v.room);location.reload();}});}
+// 詳細設定の「テレビとつなぐ」：テレビの待ち受け画面に出ている6けたの番号を入れる
+function tvPair(){const cur=ls('tvlink');if(cur){if(confirm('テレビとつながっています。つなぐのをやめますか？')){ls('tvlink',null);toast('テレビとつなぐのをやめました');}return;}
+  const c=(prompt('テレビの待ち受け画面に出ている6けたの番号を入れてください')||'').replace(/\D/g,'');if(!c)return;if(c.length!==6){toast('6けたの番号を入れてください');return;}
+  fbApp().database().ref('party/TVPAIR0000000000000000'+c+'/p').once('value').then(s=>{const v=s.val();if(!v||!/^[A-Za-z0-9]{24,64}$/.test(v.key||'')){toast('番号が見つかりませんでした。テレビの番号をもう一度見てください');return;}
+    ls('tvlink',v.key);toast('テレビとつなぎました');tvTell(fbApp().database());},()=>toast('つなげませんでした'));}
 function start(){
   const app=fbApp();
-  const db=app.database();ref=db.ref('party/'+ROOM);
+  const db=app.database();ref=db.ref('party/'+ROOM);tvTell(db);tvFollow(db);
   db.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0;});
   db.ref('.info/connected').on('value',s=>{conn=!!s.val();if(conn){reg();if(lost){lost=false;toast('つながりました');applying=0;apply();}everConn=true;}else if(everConn)lost=true;paint();});
   ref.child('p').on('value',s=>{const v=s.val()||{},old=S.now;S.now=v.now&&v.now.vid?v.now:null;{const m=S.now;plog('部屋：'+(m?({wait:'待つ',play:'再生',pause:'一時停止'}[m.state]||m.state)+' '+(m.pos||0).toFixed(1)+'秒 '+(nameOf(m.by)||''):'なし'));}notice(old,S.now);S.queue=arr(v.queue);apply();checkStart();paint();});
