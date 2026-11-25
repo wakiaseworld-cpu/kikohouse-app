@@ -208,6 +208,8 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .schd .sstar{margin-left:auto}
 .fsheet .fhd .sfavb{margin-left:auto;margin-right:8px;width:auto!important;padding:0 12px!important;font-size:13px;font-weight:700;color:#b98a00}
 .shead{font-size:13px;font-weight:700;opacity:.7;margin:4px 2px 8px}
+.sres .rs.schl{color:#2f80ed!important;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.sres .rs.schl .schg{text-decoration:none}
 .schd{display:flex;align-items:center;gap:10px;margin:8px 0}
 .sback{font:inherit;font-size:13px;font-weight:700;background:none;border:0;color:#2f80ed;padding:4px 0;cursor:pointer}
 .sres .shd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;color:#c23d87}
@@ -339,7 +341,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-20';
+const VER='2026.11.26-21';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -907,7 +909,7 @@ function openFind(q){
     // 結果の表示：合うチャンネル（押すと最近の動画）→ 動画
     let last=null;
     const err=j=>{res.append(el('div','sinfo',j.error==='limit'?'今日はもう探せません。明日また使えます':/KEY/.test(j.error)?'鍵がまだ入っていません':'うまく探せませんでした'));};
-    const vids=items=>items.forEach(it=>{let r;const ok=()=>{r.classList.add('sadd');if(it.short)markTall(it.vid,true);};const r0=row({vid:it.vid,title:it.title},[btn('ic go','▶',()=>{ok();autoPip();tapLoad(it.vid,0);add(it.vid,'now',it.title);}),btn('ic','次に',()=>{ok();add(it.vid,'next',it.title);}),btn('ic','後で',()=>{ok();add(it.vid,'last',it.title);})],it.ch||'');r=r0;if(inList(it.vid))r.classList.add('sadd');
+    const vids=(items,inCh)=>items.forEach(it=>{let r;const ok=()=>{r.classList.add('sadd');if(it.short)markTall(it.vid,true);};const r0=row({vid:it.vid,title:it.title},[btn('ic go','▶',()=>{ok();autoPip();tapLoad(it.vid,0);add(it.vid,'now',it.title);}),btn('ic','次に',()=>{ok();add(it.vid,'next',it.title);}),btn('ic','後で',()=>{ok();add(it.vid,'last',it.title);})],it.ch||'');r=r0;if(inList(it.vid))r.classList.add('sadd');if(!inCh&&it.cid){const sd=r.querySelector('.rs');if(sd){sd.classList.add('schl');sd.append(el('span','schg',' ›'));sd.addEventListener('click',e=>{e.stopPropagation();openCh({cid:it.cid,title:it.ch||''});});}}
           const mt=[it.views?nV(it.views)+'回':'',it.at?ago(it.at):''].filter(Boolean).join('・');const mtd=el('div','rs smeta',mt);if(mt||it.desc)r.querySelector('.tx').append(mtd);
           const im=r.querySelector('.th');if(it.sec||it.live||it.short){const w=el('span','thw');im.replaceWith(w);w.append(im);if(it.live)w.append(el('span','dur dlive','配信中'));else if(it.sec)w.append(el('span','dur',hms(it.sec)));if(it.short)w.append(el('span','dshort','ショート'));}
           res.append(r);if(it.desc){const d=el('div','sdesc',it.desc);d.hidden=true;res.append(d);r.classList.add('stap');mtd.append(el('span','sarr','▾'));r.addEventListener('click',e=>{if(e.target.closest('button'))return;d.hidden=!d.hidden;mtd.lastChild.textContent=d.hidden?'▾':'▴';});}});
@@ -924,7 +926,7 @@ function openFind(q){
     const favView=()=>{last=null;res.textContent='';const a=favs();if(!a.length){res.append(el('div','sinfo','チャンネルの ☆ を押すと、ここに出ます'));fitSoon();return;}res.append(el('div','shead','お気に入りのチャンネル'));a.forEach(c=>res.append(card(c)));res.scrollTop=0;fitSoon();};
     // チャンネルの最近の動画（新しい順）
     const openCh=c=>{res.textContent='';const bk=btn('sback',last?'‹ 検索結果にもどる':'‹ お気に入りにもどる',()=>{if(last)show(last);else favView();});const hd=el('div','schd');const im=el('img','sav');im.src=c.thumb||'';im.alt='';hd.append(im,el('b',null,c.title+' の最近の動画'),star(c));res.append(bk,hd,el('div','sinfo','読み込んでいます…'));res.scrollTop=0;fitSoon();
-      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}if(j.channel&&isFav(c.cid)){const ch=j.channel;ls('favch',JSON.stringify(favs().map(x=>x.cid===c.cid?Object.assign(x,{title:ch.title||x.title,thumb:ch.thumb||x.thumb},ch.subs?{subs:ch.subs}:{},ch.handle?{handle:ch.handle}:{}):x)));}const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items);
+      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}if(j.channel){const ch=j.channel;if(ch.thumb){im.src=ch.thumb;c.thumb=ch.thumb;}if(ch.subs)c.subs=ch.subs;if(ch.handle)c.handle=ch.handle;if(ch.title)c.title=ch.title;}if(j.channel&&isFav(c.cid)){const ch=j.channel;ls('favch',JSON.stringify(favs().map(x=>x.cid===c.cid?Object.assign(x,{title:ch.title||x.title,thumb:ch.thumb||x.thumb},ch.subs?{subs:ch.subs}:{},ch.handle?{handle:ch.handle}:{}):x)));}const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items,true);
         if(j.next){const mb=btn('smore','もっと見る',()=>{mb.replaceWith(el('div','sinfo','読み込んでいます…'));more(j.next);});res.append(mb);}fitSoon();}).catch(()=>{res.lastChild.remove();res.append(el('div','sinfo','うまく読み込めませんでした'));});
       more('');};
     FD={ov,fi,run,res,favView};}
