@@ -305,7 +305,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-6';
+const VER='2026.11.26-7';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -674,8 +674,8 @@ function peek(){if(!window.firebase||!ROOM)return;try{fbApp().database().ref('pa
 function pops(){const was=seenOn,t=Date.now();seenOn={};Object.entries(S.members).forEach(([id,m])=>{if(m&&m.name)seenOn[id]=shown(id,m);});if(!was)return;
   Object.keys(seenOn).forEach(id=>{if(id===cid||seenOn[id]===!!was[id])return;
     if(!seenOn[id]){goneAt[id]=t;return;}
-    const back=!(id in was)||(goneAt[id]&&t-goneAt[id]>120000);delete goneAt[id];
-    if(back&&!(popAt[id]&&t-popAt[id].t<300000))popAt[id]={k:'in',t};});}
+    // 跳ねるのは、その人がその日はじめて入ってきたときだけ（1人1日1回。開き直してもその日はもう跳ねない）
+    delete goneAt[id];const day=new Date().toDateString();if(ls('popday-'+id)!==day){ls('popday-'+id,day);popAt[id]={k:'in',t};}});}
 // いることの合図（1分ごと）。消された人は作り直さない
 function beat(){if(!ref||!conn||leaving||!seenSelf)return;ref.child('members/'+cid).transaction(m=>{if(!m)return;m.at=Math.round(now());if(!m.on)m.on=true;return m;},null,false);}
 setInterval(beat,60000);
