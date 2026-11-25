@@ -287,6 +287,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 /* 自分のアイコン：色のふち */
 .chip.self .dot{box-shadow:0 0 0 3px var(--card),0 0 0 6px var(--acc)!important}
 .chip.away .dot{opacity:.6}.chip.away .dot:after{background:#f5b700!important}
+.wrap.joining .stage{opacity:0}
 .ver{text-align:center;font-size:11px;color:var(--sub);opacity:.6;margin:6px 0 0;font-weight:500!important}
 .wlh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.wlh h2{flex:1;margin:0!important}.wlh [hidden]{display:none}
 .wlf[hidden]{display:none}.wlf p{font-size:13px;color:var(--sub);margin:0 0 8px}.wlf .url{margin:0}
@@ -306,7 +307,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-8';
+const VER='2026.11.26-9';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -500,7 +501,11 @@ function paintStat(){const el2=$('stat');if(!el2)return;const n=S.now;let st=nul
   el2.append(box);}
 setInterval(()=>{checkStart();paintStat();},1000);
 // iPhone（ためし）：次の動画を、YouTubeの再生リストの中で切りかえる。差しかえると小窓が閉じるので、同じリストの中で動かせば続くかもしれない
+// 途中から始めるとき（iPhone）：YouTubeが「○秒から」を無視して0秒から流すので、正しい位置に着くまで映像を隠して音を消しておく
+let joinFix=null;
+function endJoin(){if(!joinFix)return;joinFix=null;const w=$('wrap');if(w)w.classList.remove('joining');sound();}
 function ytLoad(vid,start,play){start=start||0;ytAt=Date.now();
+  if(iOS&&play&&start>2){joinFix={vid,at:Date.now(),sk:0};const w=$('wrap');if(w)w.classList.add('joining');try{P.mute();}catch(_){}}
   if(!iOS){if(play)P.loadVideoById({videoId:vid,startSeconds:start});else P.cueVideoById({videoId:vid,startSeconds:start});return;}
   let L=[],cur='';try{L=P.getPlaylist()||[];cur=(P.getVideoData()||{}).video_id||'';}catch(_){}
   if(cur===vid){try{P.seekTo(start,true);play?P.playVideo():P.pauseVideo();}catch(_){}return;}
@@ -547,6 +552,8 @@ function autoNext(){const n=S.now;if(!n||n.state!=='play'||!loaded||n.vid!==load
   plog('YouTubeが自分で次の動画へ進んだ：部屋も次へ');endNow(loaded,lastPos.d);return true;}
 const overEnd=n=>{try{const d=P.getDuration()||0;return n&&n.state==='play'&&n.vid===loaded&&d>5&&exp(n)>=d+1;}catch(_){return false;}};
 function onState(e){const st=e.data,n=S.now;if(st===1){if(!playAt)playAt=Date.now();}else playAt=0;
+  if(joinFix&&(Date.now()-joinFix.at>8000||!n||n.vid!==joinFix.vid))endJoin();
+  if(joinFix&&st===1&&actual()===joinFix.vid){const w=exp(n),c=P.getCurrentTime()||0;if(Math.abs(c-w)>2){if(Date.now()-joinFix.sk>1500){joinFix.sk=Date.now();applying=Date.now()+1500;try{P.seekTo(w,true);}catch(_){}}}else endJoin();}
   try{plog('状態：'+({'-1':'未開始','0':'終わり','1':'再生','2':'一時停止','3':'読み込み','5':'準備'}[st]||st)+' '+(P.getCurrentTime()||0).toFixed(1)+'秒');}catch(_){}
   if(st===2&&unTry.on&&n&&n.state==='play'){unTry.on=false;forced=true;plog('音を戻したら止められた：音なしに戻す');try{P.mute();P.playVideo();}catch(_){}paint();return;}
   if(iOS&&st!==0){let v='';try{v=(P.getVideoData()||{}).video_id||'';}catch(_){}if(v&&loaded&&v!==loaded){if(!autoNext())paint();return;}}
@@ -678,7 +685,7 @@ function pops(){const was=seenOn,t=Date.now();seenOn={};Object.entries(S.members
   Object.keys(seenOn).forEach(id=>{if(id===cid||seenOn[id]===!!was[id])return;
     if(!seenOn[id]){goneAt[id]=t;return;}
     // 跳ねるのは、その人がその日はじめて入ってきたときだけ（1人1日1回。開き直してもその日はもう跳ねない）
-    delete goneAt[id];const day=new Date().toDateString();if(ls('popday-'+id)!==day){ls('popday-'+id,day);popAt[id]={k:'in',t};}});}
+    delete goneAt[id];const day=new Date().toDateString();if(ls('popday-'+id)!==day){ls('popday-'+id,day);popAt[id]={k:'in',t};const nm=nameOf(id);if(nm)setTimeout(()=>toast(nm+'が来ました',id),0);}});}
 // いることの合図（1分ごと）。消された人は作り直さない
 function beat(){if(!ref||!conn||leaving||!seenSelf)return;ref.child('members/'+cid).transaction(m=>{if(!m)return;m.at=Math.round(now());if(!m.on)m.on=true;return m;},null,false);}
 setInterval(beat,60000);
@@ -707,7 +714,8 @@ function start(){
   const db=app.database();ref=db.ref('party/'+ROOM);tvTell(db);tvFollow(db);
   db.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0;});
   db.ref('.info/connected').on('value',s=>{conn=!!s.val();if(conn){reg();if(lost){lost=false;toast('つながりました');applying=0;apply();}everConn=true;}else if(everConn)lost=true;paint();});
-  ref.child('p').on('value',s=>{const v=s.val()||{},old=S.now;S.now=v.now&&v.now.vid?v.now:null;{const m=S.now;plog('部屋：'+(m?({wait:'待つ',play:'再生',pause:'一時停止'}[m.state]||m.state)+' '+(m.pos||0).toFixed(1)+'秒 '+(nameOf(m.by)||''):'なし'));}notice(old,S.now);S.queue=arr(v.queue);apply();checkStart();paint();});
+  ref.child('p').on('value',s=>{const v=s.val()||{},old=S.now;S.now=v.now&&v.now.vid?v.now:null;{const m=S.now;plog('部屋：'+(m?({wait:'待つ',play:'再生',pause:'一時停止'}[m.state]||m.state)+' '+(m.pos||0).toFixed(1)+'秒 '+(nameOf(m.by)||''):'なし'));}notice(old,S.now);{const oq=S.queue,nq=arr(v.queue);if(S.qInit){const ov=new Set(oq.map(x=>x&&x.vid)),nw=nq.filter(it=>it&&!ov.has(it.vid)&&it.by&&it.by!==cid&&nameOf(it.by));
+    if(nw.length===1)toast(nameOf(nw[0].by)+'が「'+(nw[0].title||'動画')+'」を追加',nw[0].by);else if(nw.length>1)toast(nameOf(nw[0].by)+'が'+nw.length+'本追加',nw[0].by);}S.qInit=true;}S.queue=arr(v.queue);apply();checkStart();paint();});
   ref.child('recent').on('value',s=>{S.recent=arr(s.val());paintLists();});
   ref.child('members').on('value',s=>{S.members=s.val()||{};pops();if(wantMerge){wantMerge=false;merge();}
     if(S.members[cid])seenSelf=true;else if(seenSelf&&!leaving){leaving=true;ls('name',null);location.reload();return;}paint();});
@@ -898,6 +906,7 @@ function dragInit(Q){let r=null,from=-1;const rows=()=>[...Q.querySelectorAll('.
 // 画面を閉じている（ほかのアプリ・画面ロック）あいだは、動画にさわらない。iPhoneは裏では古い位置しか返さないので、合わせようとして飛びつづけ、音がガビガビになる。
 // 相手の操作（止める・流す・動画を変える）にはついていき、画面に戻ったらすぐ合わせる
 setInterval(()=>{if(!P||!ready)return;const n=S.now;paintTime();
+  if(joinFix&&(Date.now()-joinFix.at>8000||n&&actual()===joinFix.vid&&P.getPlayerState()===1&&Math.abs((P.getCurrentTime()||0)-exp(n))<=2))endJoin();
   if(n&&loaded===n.vid&&Date.now()>=applying&&!(document.hidden&&!pip)){const av=actual();if(av&&av!==n.vid){if(autoNext())return;if(Date.now()-ytAt>3000)apply();}else if(av===n.vid&&(miss||needTap)){miss=0;if(needTap){needTap=false;paint();}}}
   if(!n||document.hidden&&!pip||Date.now()<applying||n.vid!==loaded||n.state==='play'&&(n.at||0)>now())return;const st=P.getPlayerState();
   if(overEnd(n)){plog('部屋の位置が動画の長さをこえている：次へ');endNow(n.vid,P.getDuration()||0);return;}
