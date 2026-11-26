@@ -150,8 +150,8 @@ h2+.row{border-top:0}
 .cover{position:absolute;inset:0;z-index:2}.cover[hidden]{display:none}
 .fsx{display:none}
 body.fs{overflow:hidden}
-body.fs .wrap{position:fixed!important;z-index:30;left:0;top:0;width:100vw;height:100vh;aspect-ratio:auto!important;border-radius:0!important;box-shadow:none!important;background:#000}
-@media (orientation:portrait){body.fs .wrap{width:100vh;height:100vw;transform-origin:0 0;transform:translateX(100vw) rotate(90deg)}}
+body.fs .wrap{position:fixed!important;z-index:30;left:0;top:0;width:var(--vw,100vw);height:var(--vh,100vh);aspect-ratio:auto!important;border-radius:0!important;box-shadow:none!important;background:#000}
+@media (orientation:portrait){body.fs .wrap{width:var(--vh,100vh);height:var(--vw,100vw);transform-origin:0 0;transform:translateX(var(--vw,100vw)) rotate(90deg)}}
 .wrap:fullscreen{border-radius:0!important;aspect-ratio:auto!important}
 body.fs .fsx,.wrap:fullscreen .fsx{display:block;position:absolute;right:12px;top:12px;z-index:5;width:40px;height:40px;border-radius:50%;border:2px solid #fff;background:rgba(255,95,174,.85);color:#fff;font-size:18px;font-weight:900}
 .slnk{display:block;margin:10px 0 0 auto;background:none!important;border:0!important;box-shadow:none!important;color:#e07fb3!important;font-size:12px;text-decoration:underline;padding:4px!important;font-family:inherit}
@@ -312,7 +312,7 @@ html,body{background-color:#eef4fc!important;background-image:radial-gradient(#f
 /* 縦の動画（ショートなど）は縦長の枠で見せる */
 .wrap.tall{aspect-ratio:9/16!important;height:min(78vh,760px);width:auto!important;max-width:100%;margin:0 auto}
 @media (min-width:1000px){.w>.g-play .wrap.tall{height:calc(100vh - 110px);width:auto!important}}
-body.fs .wrap.tall{aspect-ratio:auto!important;width:100vw!important;height:100vh!important;transform:none!important}
+body.fs .wrap.tall{aspect-ratio:auto!important;width:var(--vw,100vw)!important;height:var(--vh,100vh)!important;transform:none!important}
 /* 入ってきた人はぴょこっと跳ねる */
 .chip.pop-in .dot{animation:popin .9s ease-out both}
 @keyframes popin{0%{transform:scale(.6)}30%{transform:translateY(-12px) scale(1.1)}55%{transform:translateY(0) scale(.95)}75%{transform:translateY(-4px)}100%{transform:none}}
@@ -355,7 +355,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-29';
+const VER='2026.11.26-30';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -650,6 +650,9 @@ function sugAttach(inp,box,pick){let t=0;const hide=()=>{box.hidden=true;};
     t=setTimeout(()=>{const my=++sgN;fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'sg',q:v})}).then(r=>r.json()).then(j=>{const L=Array.isArray(j.list)?j.list:[];SGC.set(v,L);if(my===sgN)show(L);}).catch(()=>{});},250);});
   inp.addEventListener('blur',()=>setTimeout(hide,150));inp.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Escape')hide();});return hide;}
 function markTall(vid,on){if(ref&&vid)ref.child('tall/'+vid).set(on?true:null);}
+// 全画面の大きさは「今見えている大きさ」で決める（iPhoneのBraveはアドレスバーが出たままなので、100vhだとその裏に見切れる）
+function vpSize(){const w=Math.round(innerWidth),h=Math.round(innerHeight);const r=document.documentElement.style;r.setProperty('--vw',w+'px');r.setProperty('--vh',h+'px');}
+vpSize();addEventListener('resize',vpSize);if(window.visualViewport)visualViewport.addEventListener('resize',vpSize);addEventListener('orientationchange',()=>setTimeout(vpSize,300));
 function fsToggle(){const w=$('wrap'),d=document;setTimeout(fxShow,60);
   if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
   if(document.body.classList.contains('fs')){document.body.classList.remove('fs');return;}
