@@ -327,6 +327,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 .hsec .htb{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
 .hsec .htb td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top;color:var(--sub)}
 .hsec .htb td+td{font-weight:700;color:var(--ink)}
+.hsec .htb td:first-child{min-width:6.5em}
 .hsec .htb td:nth-child(3){font-weight:500;color:var(--sub);font-size:12.5px}
 .hsec .htb tr:first-child td:nth-child(3){font-weight:700}
 .hsec .himg{display:block;width:100%;max-width:420px;margin:8px auto 10px;border-radius:12px;box-shadow:0 0 0 1px var(--line)}
@@ -350,7 +351,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-31';
+const VER='2026.11.26-32';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -898,8 +899,9 @@ function openHelp(){const ov=el('div','ov'),sh=el('div','sheet hsheet');const hd
     const G=n=>'IMG:'+(I?'i_':'o_')+n+'.jpg';
     H('友だちを呼ぶ',[G('call')]);
     H('動画を入れる',[G('add'),'q:今すぐ|すぐに再生されます','q:次に再生|今の動画が終わったら再生されます','q:後で再生|最後に再生されます']);
-    H('動画検索',[G('find'),'s:YouTubeの動画を探して、そのまま入れられます。']);
-    H('ボタン',[G('ctl'),G('opt'),'このボタンで操作したときだけ、みんなの動画も同じように動きます。',I?'s:YouTubeの画面（全画面など）で止めたり進めたりしても、みんなの動画は変わりません。自分の動画もすぐ元に戻ります。':'s:動画の上（YouTubeのボタン）やイヤホンのボタンで操作しても、みんなの動画は変わりません。自分の動画もすぐ元に戻ります。']);
+    H('動画検索',[G('find'),'s:YouTubeの動画を探して、そのまま入れられます。',G('sug'),'s:文字を入れると候補が出ます。',G('sres'),G('sres2'),'q:チャンネル|いちばん上のチャンネルや、動画の下の青い名前を押すと、そのチャンネルの動画が並びます（新しい順・人気順、もっと見る）','q:並べ方|関連順・新しい順・人気順を選べます','q:印|「ショート」「配信中」が付きます。ショートは入れると縦長になります','s:1日95回まで探せます（人気順も1回使います）。同じ言葉は6時間、回数を使いません。']);
+    H('お気に入りのチャンネル',[G('fav'),'チャンネルの ☆ を押すと入ります。「☆ お気に入り」から、すぐそのチャンネルの動画を開けます。','s:部屋のみんなで共有します。']);
+    H('ボタン',[G('ctl'),G('opt'),'このボタンで操作したときだけ、みんなの動画も同じように動きます。','s:全画面のバツは3秒で消えます。画面をさわるとまた出ます。',I?'s:YouTubeの画面（全画面など）で止めたり進めたりしても、みんなの動画は変わりません。自分の動画もすぐ元に戻ります。':'s:動画の上（YouTubeのボタン）やイヤホンのボタンで操作しても、みんなの動画は変わりません。自分の動画もすぐ元に戻ります。']);
     H('見ている人',[G('mem'),'s:自分の丸を押すと、名前やアイコンを変えられます。']);
     H('通知',['IMG:toast.jpg','誰かが操作したとき・動画を追加したとき・入ってきたときに、通知が出ます。','s:（ピクチャインピクチャなど、一部の画面では出ません）']);
     H('みたいものリスト',[G('wl'),'YouTubeの再生リストのURLを登録すると、自分だけが見える状態でリストの中身をここで開けます。','見たい動画をここから選んで、すぐ入れられます。']);
