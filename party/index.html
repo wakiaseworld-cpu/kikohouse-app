@@ -215,6 +215,7 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .sord{display:flex;gap:6px;margin:4px 0 8px}
 .sord .so{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line,#e5e7eb);background:var(--btn,#f1f1f4);color:inherit;border-radius:999px;padding:5px 12px;cursor:pointer}
 .sord .so.on{background:#2f80ed;border-color:#2f80ed;color:#fff}
+.srow .sdesc{display:block;font-size:12px;font-weight:500;opacity:.65;margin-top:2px;line-height:1.4}
 .shead{font-size:13px;font-weight:700;opacity:.7;margin:4px 2px 8px}
 .sres .rs.schl{color:#2f80ed!important;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .sres .rs.schl .schg{text-decoration:none}
@@ -349,7 +350,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-24';
+const VER='2026.11.26-25';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -664,10 +665,15 @@ document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.isC
   let f=sh?(k==='n'?()=>q('.k.next'):k==='p'?()=>q('.k.prev'):null):act[k];if(!f)return;
   e.preventDefault();if(t&&t.tagName==='BUTTON')t.blur();f();});
 // 詳細設定
+// 音の出し方（iPhoneのSafari 17から）：ページの音をどう鳴らすかをiPhoneに伝える。LINE通話しながらだと動画の音が下げられるので、ゆるくなるものを試せるようにする
+const AS_T={auto:['自動','auto'],play:['再生','playback'],mix:['まぜる','ambient'],call:['通話','play-and-record']};
+function asApply(){try{if(!navigator.audioSession)return;const k=AS_T[ls('as')]?ls('as'):'auto';if(navigator.audioSession.type!==AS_T[k][1]){navigator.audioSession.type=AS_T[k][1];plog('音の出し方：'+AS_T[k][0]+'（'+navigator.audioSession.type+'）');}}catch(e){plog('音の出し方を変えられない：'+(e&&e.message||e));}}
 function openSet(){const ov=el('div','ov'),sh=el('div','sheet sset');sh.append(el('h3',null,'詳細設定'));
   const row=(t,on,f)=>{const r=el('div','srow');const b=btn('tg'+(on()?' on':''),on()?'オン':'オフ',()=>{f();b.classList.toggle('on',on());b.textContent=on()?'オン':'オフ';});r.append(el('span',null,t),b);sh.append(r);};
   row('YouTubeのボタンを出す',()=>ls('ytc')==='1',()=>{ls('ytc',ls('ytc')==='1'?0:1);if(!pip){try{P&&P.destroy();}catch(_){}P=null;make($('stage'));}paint();});
   if(window.documentPictureInPicture)row('自動小窓',()=>ls('apip')==='1',()=>{ls('apip',ls('apip')==='1'?0:1);});
+  if(navigator.audioSession){const r=el('div','srow'),ks=Object.keys(AS_T);const cur=()=>AS_T[ls('as')]?ls('as'):'auto';const b=btn('tg'+(cur()!=='auto'?' on':''),AS_T[cur()][0],()=>{const n=ks[(ks.indexOf(cur())+1)%ks.length];ls('as',n);asApply();b.textContent=AS_T[n][0];b.classList.toggle('on',n!=='auto');});
+    const lb=el('span');lb.append('音の出し方（ためす用）',el('small','sdesc','LINE通話しながら聞こえにくいとき、押して切りかえて、いちばん聞こえるものにしてください'));r.append(lb,b);sh.append(r);}
   const lv=btn('pk off','退出',()=>{ov.remove();leave();});
   const lg=btn('pk','動きの記録（調べる用）',()=>{const ov2=el('div','ov'),s2=el('div','sheet hsheet'),hd=el('div','fhd');hd.append(el('b',null,'動きの記録'),btn('ic','✕',()=>ov2.remove()));
     const pre=el('pre','logpre',logA.slice().reverse().join('\n')||'まだありません');const cp=btn('pk','コピー',()=>{(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(pre.textContent):Promise.reject()).then(()=>{cp.textContent='コピーしました';},()=>{});});
@@ -774,6 +780,7 @@ function tvPair(){const cur=ls('tvlink');if(cur){if(confirm('テレビとつな�
     ls('tvlink',v.key);toast('テレビとつなぎました');tvTell(fbApp().database());},()=>toast('つなげませんでした'));}
 function start(){
   const app=fbApp();
+  asApply();document.addEventListener('visibilitychange',()=>{if(!document.hidden)asApply();});
   const db=app.database();ref=db.ref('party/'+ROOM);tvTell(db);tvFollow(db);
   db.ref('.info/serverTimeOffset').on('value',s=>{off=s.val()||0;});
   db.ref('.info/connected').on('value',s=>{conn=!!s.val();if(conn){reg();if(lost){lost=false;toast('つながりました');applying=0;apply();}everConn=true;}else if(everConn)lost=true;paint();});
