@@ -207,6 +207,14 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .sstar.on{color:#f5b700}
 .schd .sstar{margin-left:auto}
 .fsheet .fhd .sfavb{margin-left:auto;margin-right:8px;width:auto!important;padding:0 12px!important;font-size:13px;font-weight:700;color:#b98a00}
+.ssug{display:flex;flex-direction:column;background:var(--card,#fff);border:1px solid var(--line,#e5e7eb);border-radius:14px;margin:6px 0;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.ssug[hidden]{display:none}
+.ssug .ssi{font:inherit;font-size:15px;text-align:left;background:none;border:0;border-top:1px solid var(--line,#e5e7eb);padding:10px 14px;color:inherit;cursor:pointer}
+.ssug .ssi:first-child{border-top:0}
+.ssug .ssi::before{content:'🔍 ';opacity:.5;font-size:12px}
+.sord{display:flex;gap:6px;margin:4px 0 8px}
+.sord .so{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line,#e5e7eb);background:var(--btn,#f1f1f4);color:inherit;border-radius:999px;padding:5px 12px;cursor:pointer}
+.sord .so.on{background:#2f80ed;border-color:#2f80ed;color:#fff}
 .shead{font-size:13px;font-weight:700;opacity:.7;margin:4px 2px 8px}
 .sres .rs.schl{color:#2f80ed!important;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .sres .rs.schl .schg{text-decoration:none}
@@ -341,7 +349,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-23';
+const VER='2026.11.26-24';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -618,6 +626,23 @@ function cc(on){ls('cc',on?1:0);if(!P||!ready)return;try{if(on){P.loadModule('ca
 // 全画面：YouTubeの全画面は使わないので、戻しても止まらない（iPhoneは画面いっぱいに横向きで）
 // 縦の動画の印（部屋のみんなで同じ）。ショートのURLを貼ったときは自動で付く。「縦」ボタンでも切りかえられる
 const isTall=()=>!!(S.now&&S.tall[S.now.vid]);
+// お気に入りのチャンネル：部屋のみんなで共有する（party/<部屋>/favch/<チャンネルID>）。
+// 前に自分の機械だけに覚えていたもの（dp-favch）は、はじめてその部屋を開いたときに部屋へ移す
+function favList(){const o=S.fav;if(ref&&o)return Object.keys(o).filter(k=>/^UC[A-Za-z0-9_-]{22}$/.test(k)&&o[k]&&typeof o[k]==='object').map(k=>Object.assign({},o[k],{cid:k})).sort((a,b)=>(b.at||0)-(a.at||0));
+  try{const a=JSON.parse(ls('favch')||'[]');return Array.isArray(a)?a:[];}catch(_){return [];}}
+function favPut(c,on){if(!c||!/^UC[A-Za-z0-9_-]{22}$/.test(c.cid||''))return;
+  if(ref){ref.child('favch/'+c.cid).set(on?{title:String(c.title||'').slice(0,100),thumb:String(c.thumb||'').slice(0,300),handle:String(c.handle||'').slice(0,60),subsText:String(c.subsText||'').slice(0,20),by:cid,at:Date.now()}:null);return;}
+  const a=favList().filter(x=>x.cid!==c.cid);if(on)a.unshift({cid:c.cid,title:c.title,thumb:c.thumb||'',handle:c.handle||'',subsText:c.subsText||''});ls('favch',JSON.stringify(a.slice(0,30)));}
+function favUpd(k,o){if(!ref||!S.fav||!S.fav[k]||!o)return;const u={};['title','thumb','handle','subsText'].forEach(f=>{if(o[f]&&o[f]!==S.fav[k][f])u[f]=String(o[f]).slice(0,300);});if(Object.keys(u).length)ref.child('favch/'+k).update(u);}
+function favMig(){if(!ref||!S.fav||ls('favmig-'+ROOM))return;ls('favmig-'+ROOM,1);let a=[];try{a=JSON.parse(ls('favch')||'[]');}catch(_){}if(Array.isArray(a))a.slice().reverse().forEach(c=>{if(c&&!S.fav[c.cid])favPut(c,true);});}
+// 入れている途中の候補（YouTubeと同じ候補。検索の回数は使わない）
+const SGC=new Map();let sgN=0;
+function sugAttach(inp,box,pick){let t=0;const hide=()=>{box.hidden=true;};
+  inp.addEventListener('input',()=>{clearTimeout(t);const v=inp.value.trim();if(!v||vidOf(v)||listOf(v)||!SEARCH){hide();return;}
+    const show=L=>{if(inp.value.trim()!==v)return;box.textContent='';L.forEach(x=>{const b=btn('ssi',x,()=>{inp.value=x;hide();pick(x);});b.addEventListener('pointerdown',e=>e.preventDefault());box.append(b);});box.hidden=!L.length;if(typeof fitSoon==='function')fitSoon();};
+    if(SGC.has(v)){show(SGC.get(v));return;}
+    t=setTimeout(()=>{const my=++sgN;fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'sg',q:v})}).then(r=>r.json()).then(j=>{const L=Array.isArray(j.list)?j.list:[];SGC.set(v,L);if(my===sgN)show(L);}).catch(()=>{});},250);});
+  inp.addEventListener('blur',()=>setTimeout(hide,150));inp.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Escape')hide();});return hide;}
 function markTall(vid,on){if(ref&&vid)ref.child('tall/'+vid).set(on?true:null);}
 function fsToggle(){const w=$('wrap'),d=document;setTimeout(fxShow,60);
   if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
@@ -758,6 +783,7 @@ function start(){
   ref.child('members').on('value',s=>{S.members=s.val()||{};pops();if(wantMerge){wantMerge=false;merge();}
     if(S.members[cid])seenSelf=true;else if(seenSelf&&!leaving){leaving=true;ls('name',null);location.reload();return;}paint();});
   ref.child('tall').on('value',s=>{const v=s.val();S.tall=v&&typeof v==='object'?v:{};paint();});
+  ref.child('favch').on('value',s=>{const v=s.val();S.fav=v&&typeof v==='object'?v:{};favMig();if(FD&&FD.onFav)FD.onFav();});
   ref.child('pos').on('value',s=>{const v=s.val();S.pos=v&&typeof v==='object'?v:{};paintLists();});
 }
 
@@ -813,7 +839,7 @@ function build(){const A=$('app');A.textContent='';
   mini.append(btn('go','今すぐ',()=>go('now')),btn('','次に再生',()=>go('next')),btn('','後で再生',()=>go('last')));
   // さがす：下から出る画面（動画は上に見えたまま）
   
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});u.append(inp);const sf=el('div','url sfind'),si=el('input');si.type='search';si.id='sin';si.enterKeyHint='search';si.placeholder='動画検索';si.autocomplete='off';const sgo=()=>{const v=si.value.trim();si.value='';si.blur();openFind(v);};si.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sgo();}});const fb=btn('hlp ufnd','🔍',sgo);fb.setAttribute('aria-label','動画検索');sf.append(si,fb);AD.append(u,mini,sf);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=inp.value.trim();if(!v||vidOf(v)||listOf(v))go('now');else{inp.value='';openFind(v);}}});u.append(inp);const sf=el('div','url sfind'),si=el('input');si.type='search';si.id='sin';si.enterKeyHint='search';si.placeholder='動画検索';si.autocomplete='off';const sgo=()=>{const v=si.value.trim();si.value='';si.blur();openFind(v);};si.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sgo();}});const fb=btn('hlp ufnd','🔍',sgo);fb.setAttribute('aria-label','動画検索');sf.append(si,fb);const sgb=el('div','ssug');sgb.hidden=true;sugAttach(si,sgb,()=>sgo());AD.append(u,mini,sf,sgb);
   const Q=el('div','card');Q.id='q';const R=el('div','card');R.id='r';
   const W=el('div','card'),wh=el('div','wlh'),wf=el('div','wlf'),wu=el('div','url'),wi=el('input'),wr=el('div');wr.id='wlr';wf.id='wlf';
   const rel=btn('ic','↻',()=>loadWl()),chg=btn('ic','変更',()=>{if(confirm('みたいものリストの登録をやめて、別の再生リストにしますか？'))setWl('');});rel.id='wlrel';chg.id='wlchg';rel.setAttribute('aria-label','読み込み直す');
@@ -898,16 +924,17 @@ function openFind(q){
     const fvb=btn('ic sfavb','☆ お気に入り',()=>favView());hd.append(el('b',null,'🔍 動画をさがす'),fvb,btn('ic','✕',()=>{ov.hidden=true;}));
     const f=el('div','frow mini'),fi=el('input');fi.type='search';fi.enterKeyHint='search';fi.placeholder='さがしたい言葉';fi.autocomplete='off';
     const sb=btn('fnd','検索',()=>run());f.append(fi,sb);const res=el('div','sres');res.id='sres';
-    sh.append(hd,f,res);ov.append(sh);document.body.append(ov);
+    const sgx=el('div','ssug');sgx.hidden=true;sh.append(hd,f,sgx,res);ov.append(sh);document.body.append(ov);sugAttach(fi,sgx,()=>{fi.blur();run();});
     const ref2=()=>{fitSoon();setTimeout(fitSoon,350);setTimeout(fitSoon,800);};fi.addEventListener('blur',ref2);
     // キーボードが出たあと、動画が見えていなかったら1回だけページを動かして見せる
     fi.addEventListener('focus',()=>{ref2();[450,900].forEach(t=>setTimeout(()=>{if(document.activeElement!==fi||matchMedia('(min-width:1000px)').matches)return;const st=$('wrap');if(!st)return;const vv=window.visualViewport,vt=vv?vv.offsetTop:0;const d=st.getBoundingClientRect().top-vt-8;if(Math.abs(d)>12){window.scrollBy(0,d);fitSoon();}},t));});
     fi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();fi.blur();run();}});
     const run=()=>{const q=fi.value.trim();if(!q){fi.focus();return;}if(vidOf(q)||listOf(q)){fi.value='';ov.hidden=true;const U=$('uin');U.value=q;U.focus();return;}if(!SEARCH)return;
       sb.disabled=true;res.textContent='';res.append(el('div','sinfo','探しています…'));fitSoon();
-      fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'yt',q})}).then(r=>r.json()).then(j=>{last=j;show(j);}).catch(()=>{res.textContent='';res.append(el('div','sinfo','うまく探せませんでした'));}).finally(()=>{sb.disabled=false;fitSoon();});};
+      sgx.hidden=true;sgN++;fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'yt',q,order:ord})}).then(r=>r.json()).then(j=>{last=j;show(j);}).catch(()=>{res.textContent='';res.append(el('div','sinfo','うまく探せませんでした'));}).finally(()=>{sb.disabled=false;fitSoon();});};
     // 結果の表示：合うチャンネル（押すと最近の動画）→ 動画
-    let last=null;
+    let last=null,ord='relevance';
+    const ordRow=()=>{const w=el('div','sord');[['relevance','関連順'],['date','新しい順'],['viewCount','人気順']].forEach(([k,t])=>{const b=btn('so'+(ord===k?' on':''),t,()=>{if(ord===k)return;ord=k;run();});w.append(b);});return w;};
     const err=j=>{res.append(el('div','sinfo',j.error==='limit'?'今日はもう探せません。明日また使えます':/KEY/.test(j.error)?'鍵がまだ入っていません':'うまく探せませんでした'));};
     const vids=(items,inCh)=>items.forEach(it=>{let r;const ok=()=>{r.classList.add('sadd');if(it.short)markTall(it.vid,true);};const r0=row({vid:it.vid,title:it.title},[btn('ic go','▶',()=>{ok();autoPip();tapLoad(it.vid,0);add(it.vid,'now',it.title);}),btn('ic','次に',()=>{ok();add(it.vid,'next',it.title);}),btn('ic','後で',()=>{ok();add(it.vid,'last',it.title);})],it.ch||'');r=r0;if(inList(it.vid))r.classList.add('sadd');if(!inCh&&it.cid){const sd=r.querySelector('.rs');if(sd){sd.classList.add('schl');sd.append(el('span','schg',' ›'));sd.addEventListener('click',e=>{e.stopPropagation();openCh({cid:it.cid,title:it.ch||''});});}}
           const mt=[it.views?nV(it.views)+'回':'',it.at?ago(it.at):''].filter(Boolean).join('・');const mtd=el('div','rs smeta',mt);if(mt||it.desc)r.querySelector('.tx').append(mtd);
@@ -919,23 +946,22 @@ function openFind(q){
       const nz=t=>String(t||'').toLowerCase().replace(/[\s　・_\-!！]/g,''),qn=nz(fi.value);
       const best=chs.find(c=>nz(c.title)===qn)||chs.find(c=>qn&&nz(c.title).includes(qn))||chs[0];if(best)res.append(card(best));
       if(!items.length&&!chs.length){res.append(el('div','sinfo','見つかりませんでした'));return;}
-      vids(items);res.scrollTop=0;fitSoon();};
+      res.append(ordRow());vids(items);res.scrollTop=0;fitSoon();};
     // お気に入りのチャンネル（この機械に覚える）。☆で入れる・外す
-    const favs=()=>{try{const a=JSON.parse(ls('favch')||'[]');return Array.isArray(a)?a:[];}catch(_){return [];}};
+    const favs=()=>favList();
     const isFav=cid=>favs().some(x=>x.cid===cid);
-    const star=c=>{const b=btn('sstar',isFav(c.cid)?'★':'☆',e=>{e.stopPropagation();const a=favs().filter(x=>x.cid!==c.cid);if(!isFav(c.cid))a.unshift({cid:c.cid,title:c.title,thumb:c.thumb||'',handle:c.handle||'',subsText:c.subsText||''});ls('favch',JSON.stringify(a.slice(0,30)));b.textContent=isFav(c.cid)?'★':'☆';b.classList.toggle('on',isFav(c.cid));});b.classList.toggle('on',isFav(c.cid));b.setAttribute('aria-label','お気に入り');return b;};
+    const star=c=>{const b=btn('sstar',isFav(c.cid)?'★':'☆',e=>{e.stopPropagation();const on=!isFav(c.cid);favPut(c,on);b.textContent=on?'★':'☆';b.classList.toggle('on',on);});b.classList.toggle('on',isFav(c.cid));b.setAttribute('aria-label','お気に入り');return b;};
     const card=c=>{const b=el('div','schan');b.setAttribute('role','button');b.tabIndex=0;const im=el('img','sav');im.src=c.thumb||'';im.alt='';im.loading='lazy';const tx=el('span','stx');tx.append(el('b',null,c.title),el('small',null,[c.handle||'',c.subsText?'登録者 '+c.subsText:''].filter(Boolean).join('・')||'最近の動画を見る'));b.append(im,tx,star(c),el('span','sgo','›'));b.addEventListener('click',()=>openCh(c));return b;};
-    const favView=noR=>{last=null;res.textContent='';const a=favs();if(!a.length){res.append(el('div','sinfo','チャンネルの ☆ を押すと、ここに出ます'));fitSoon();return;}res.append(el('div','shead','お気に入りのチャンネル'));a.forEach(c=>res.append(card(c)));res.scrollTop=0;fitSoon();if(!noR)favRef();};
+    const favView=noR=>{last=null;res.textContent='';const a=favs();if(!a.length){res.append(el('div','sinfo','チャンネルの ☆ を押すと、ここに出ます'));fitSoon();return;}res.append(el('div','shead','お気に入りのチャンネル（部屋のみんなで共有）'));a.forEach(c=>res.append(card(c)));res.scrollTop=0;fitSoon();if(!noR)favRef();};
     // お気に入りの名前・アイコン・今の@ハンドルを、まとめて新しくする（6時間に1回。@ハンドルがないものがあれば毎回）
     const favRef=()=>{const a=favs();if(!a.length||!SEARCH)return;if(Date.now()-Number(ls('favchAt6')||0)<6*3600e3&&a.every(x=>x.handle&&x.subsText))return;
-      fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'chinfo',cids:a.map(x=>x.cid)})}).then(r=>r.json()).then(j=>{if(!Array.isArray(j.channels))return;ls('favchAt6',Date.now());const m={};j.channels.forEach(c=>{m[c.cid]=c;});
-        ls('favch',JSON.stringify(favs().map(x=>m[x.cid]?Object.assign(x,{title:m[x.cid].title||x.title,thumb:m[x.cid].thumb||x.thumb,handle:m[x.cid].handle||x.handle,subsText:m[x.cid].subsText||x.subsText||''}):x)));if(last===null&&res.querySelector('.shead'))favView(true);}).catch(()=>{});};
+      fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'chinfo',cids:a.map(x=>x.cid)})}).then(r=>r.json()).then(j=>{if(!Array.isArray(j.channels))return;ls('favchAt6',Date.now());j.channels.forEach(ch=>favUpd(ch.cid,ch));if(!ref&&last===null&&res.querySelector('.shead'))favView(true);}).catch(()=>{});};
     // チャンネルの最近の動画（新しい順）
     const openCh=c=>{res.textContent='';const bk=btn('sback',last?'‹ 検索結果にもどる':'‹ お気に入りにもどる',()=>{if(last)show(last);else favView();});const hd=el('div','schd');const im=el('img','sav');im.src=c.thumb||'';im.alt='';hd.append(im,el('b',null,c.title+' の最近の動画'),star(c));res.append(bk,hd,el('div','sinfo','読み込んでいます…'));res.scrollTop=0;fitSoon();
-      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}if(j.channel){const ch=j.channel;if(ch.thumb){im.src=ch.thumb;c.thumb=ch.thumb;}if(ch.subs)c.subs=ch.subs;if(ch.handle)c.handle=ch.handle;if(ch.subsText)c.subsText=ch.subsText;if(ch.title)c.title=ch.title;}if(j.channel&&isFav(c.cid)){const ch=j.channel;ls('favch',JSON.stringify(favs().map(x=>x.cid===c.cid?Object.assign(x,{title:ch.title||x.title,thumb:ch.thumb||x.thumb},ch.handle?{handle:ch.handle}:{},ch.subsText?{subsText:ch.subsText}:{}):x)));}const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items,true);
+      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}if(j.channel){const ch=j.channel;if(ch.thumb){im.src=ch.thumb;c.thumb=ch.thumb;}if(ch.subs)c.subs=ch.subs;if(ch.handle)c.handle=ch.handle;if(ch.subsText)c.subsText=ch.subsText;if(ch.title)c.title=ch.title;}if(j.channel&&isFav(c.cid))favUpd(c.cid,j.channel);const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items,true);
         if(j.next){const mb=btn('smore','もっと見る',()=>{mb.replaceWith(el('div','sinfo','読み込んでいます…'));more(j.next);});res.append(mb);}fitSoon();}).catch(()=>{res.lastChild.remove();res.append(el('div','sinfo','うまく読み込めませんでした'));});
       more('');};
-    FD={ov,fi,run,res,favView};}
+    FD={ov,fi,run,res,favView,onFav:()=>{if(last===null&&res.querySelector('.shead'))favView(true);}};}
   FD.ov.hidden=false;fitFind(true);
   if(q){FD.fi.value=q;FD.run();}else{if(!FD.res.children.length||FD.res.querySelector('.sinfo:only-child'))FD.favView();if(!FD.fi.value)FD.fi.focus();}}
 function inList(v){return !!(S.now&&S.now.vid===v)||S.queue.some(x=>x&&x.vid===v);}
