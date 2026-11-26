@@ -355,7 +355,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-28';
+const VER='2026.11.26-29';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -972,8 +972,8 @@ function openFind(q){
       const nv=v&&String(v)!==ls('favv');if(!nv&&Date.now()-Number(ls('favchAt6')||0)<6*3600e3&&a.every(x=>x.handle))return;
       fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'chinfo',cids:a.map(x=>x.cid)})}).then(r=>r.json()).then(j=>{if(!Array.isArray(j.channels))return;ls('favchAt6',Date.now());j.channels.forEach(ch=>favUpd(ch.cid,ch));if(v)ls('favv',v);if(!ref&&last===null&&res.querySelector('.shead'))favView(true);}).catch(()=>{});});};
     // チャンネルの最近の動画（新しい順）
-    const openCh=c=>{res.textContent='';const bk=btn('sback',last?'‹ 検索結果にもどる':'‹ お気に入りにもどる',()=>{if(last)show(last);else favView();});const hd=el('div','schd');const im=el('img','sav');im.src=c.thumb||'';im.alt='';hd.append(im,el('b',null,c.title+' の最近の動画'),star(c));res.append(bk,hd,el('div','sinfo','読み込んでいます…'));res.scrollTop=0;fitSoon();
-      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}if(j.channel){const ch=j.channel;if(ch.thumb){im.src=ch.thumb;c.thumb=ch.thumb;}if(ch.subs)c.subs=ch.subs;if(ch.handle)c.handle=ch.handle;if(ch.subsText)c.subsText=ch.subsText;if(ch.title)c.title=ch.title;}if(j.channel&&isFav(c.cid))favUpd(c.cid,j.channel);const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items,true);
+    const openCh=(c,cord)=>{cord=cord==='viewCount'?'viewCount':'date';res.textContent='';const bk=btn('sback',last?'‹ 検索結果にもどる':'‹ お気に入りにもどる',()=>{if(last)show(last);else favView();});const hd=el('div','schd');const im=el('img','sav');im.src=c.thumb||'';im.alt='';hd.append(im,el('b',null,c.title+(cord==='viewCount'?' の人気の動画':' の最近の動画')),star(c));const cw=el('div','sord');[['date','新しい順'],['viewCount','人気順']].forEach(([k,t])=>{cw.append(btn('so'+(cord===k?' on':''),t,()=>{if(cord!==k)openCh(c,k);}));});res.append(bk,hd,cw,el('div','sinfo','読み込んでいます…'));res.scrollTop=0;fitSoon();
+      const more=pt=>fetch(SEARCH,{method:'POST',body:JSON.stringify({room:ROOM,mode:'ch',cid:c.cid,pt,order:cord})}).then(r=>r.json()).then(j=>{res.lastChild.remove();if(j.error){err(j);return;}if(j.channel){const ch=j.channel;if(ch.thumb){im.src=ch.thumb;c.thumb=ch.thumb;}if(ch.subs)c.subs=ch.subs;if(ch.handle)c.handle=ch.handle;if(ch.subsText)c.subsText=ch.subsText;if(ch.title)c.title=ch.title;}if(j.channel&&isFav(c.cid))favUpd(c.cid,j.channel);const items=j.items||[];if(!items.length&&!pt&&!j.next){res.append(el('div','sinfo','動画がありません'));return;}vids(items,true);
         if(j.next){const mb=btn('smore','もっと見る',()=>{mb.replaceWith(el('div','sinfo','読み込んでいます…'));more(j.next);});res.append(mb);}fitSoon();}).catch(()=>{res.lastChild.remove();res.append(el('div','sinfo','うまく読み込めませんでした'));});
       more('');};
     FD={ov,fi,run,res,favView,onFav:()=>{if(last===null&&res.querySelector('.shead'))favView(true);}};}
