@@ -341,7 +341,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-21';
+const VER='2026.11.26-22';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -915,7 +915,9 @@ function openFind(q){
           res.append(r);if(it.desc){const d=el('div','sdesc',it.desc);d.hidden=true;res.append(d);r.classList.add('stap');mtd.append(el('span','sarr','▾'));r.addEventListener('click',e=>{if(e.target.closest('button'))return;d.hidden=!d.hidden;mtd.lastChild.textContent=d.hidden?'▾':'▴';});}});
     const show=j=>{res.textContent='';if(j.error){err(j);return;}
       const chs=j.channels||[],items=j.items||[];
-      chs.forEach(c=>res.append(card(c)));
+      // チャンネルは、いちばん合う1つだけ（名前が検索した言葉と同じもの → 名前に言葉が入っているもの → 最初のもの）
+      const nz=t=>String(t||'').toLowerCase().replace(/[\s　・_\-!！]/g,''),qn=nz(fi.value);
+      const best=chs.find(c=>nz(c.title)===qn)||chs.find(c=>qn&&nz(c.title).includes(qn))||chs[0];if(best)res.append(card(best));
       if(!items.length&&!chs.length){res.append(el('div','sinfo','見つかりませんでした'));return;}
       vids(items);res.scrollTop=0;fitSoon();};
     // お気に入りのチャンネル（この機械に覚える）。☆で入れる・外す
