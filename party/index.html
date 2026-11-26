@@ -149,6 +149,7 @@ h2+.row{border-top:0}
 .stat .swho .dot.ok{opacity:1;box-shadow:0 0 0 2px #fff,0 0 0 4px #ff5fae!important}
 
 .cover{position:absolute;inset:0;z-index:2}.cover[hidden]{display:none}
+html.tvp .cover,html.tvp .lgcover,html.tvp .ttcover{display:none!important}
 .fsx{display:none}
 body.fs{overflow:hidden}
 body.fs .wrap{position:fixed!important;z-index:30;left:0;top:0;width:var(--vw,100vw);height:var(--vh,100vh);aspect-ratio:auto!important;border-radius:0!important;box-shadow:none!important;background:#000}
@@ -355,7 +356,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-34';
+const VER='2026.11.26-35';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -1046,6 +1047,8 @@ setInterval(()=>{if($('mem'))paint();},60000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!pip&&!iOS)applying=Date.now()+864e5;}else{applying=0;apply();beat();}putBg();});
 
 // テレビ（Android）のリモコン：上下左右で、となりのボタンへ移る。選んでいるところはオレンジの太枠。動画（YouTubeの中）は選ばない（中に入ると出てこられないため）
+// テレビの待ち受けから開いたとき（?tv=1）は、動画の上の板を外して、リモコンのマウスでYouTubeの画面をさわれるようにする（広告のスキップなど）
+if(TVP)document.documentElement.classList.add('tvp');
 if(TVD||TVP){document.documentElement.classList.add('tv');
   document.addEventListener('keydown',e=>{const D={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(!D||e.ctrlKey||e.altKey||e.metaKey)return;
     const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.type!=='range'&&D[1]===0)return;
