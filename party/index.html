@@ -215,6 +215,11 @@ body.fs .fsx,.wrap:fullscreen .fsx{right:auto!important;left:12px;top:50%!import
 .sord{display:flex;gap:6px;margin:4px 0 8px}
 .sord .so{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line,#e5e7eb);background:var(--btn,#f1f1f4);color:inherit;border-radius:999px;padding:5px 12px;cursor:pointer}
 .sord .so.on{background:#2f80ed;border-color:#2f80ed;color:#fff}
+.srow.asrow{flex-wrap:wrap;gap:8px}
+.srow.asrow>span{flex:1 1 100%}
+.asg{display:flex;gap:6px;width:100%}
+.asg .asb{flex:1;font:inherit;font-size:14px;font-weight:700;padding:9px 0;border-radius:999px;border:1px solid var(--line,#e5e7eb);background:var(--btn,#f1f1f4);color:inherit;cursor:pointer}
+.asg .asb.on{background:#2f80ed;border-color:#2f80ed;color:#fff}
 .srow .sdesc{display:block;font-size:12px;font-weight:500;opacity:.65;margin-top:2px;line-height:1.4}
 .shead{font-size:13px;font-weight:700;opacity:.7;margin:4px 2px 8px}
 .sres .rs.schl{color:#2f80ed!important;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
@@ -350,7 +355,7 @@ html.tv :focus{outline:4px solid #ff8a00!important;outline-offset:3px;box-shadow
 <script>
 {
 // 版（更新するたびに上げる。画面のいちばん下に小さく出す）
-const VER='2026.11.26-25';
+const VER='2026.11.26-26';
 const SEARCH='https://script.google.com/macros/s/AKfycbxmyUVVj-xb2ICGCtUM4-PhqlsCm4wvcCHjI-IzhZ8OUvDCRyLkJhrC1i1ZMiEnoQoSCQ/exec';
 const DB='https://kikohouse-943cf-default-rtdb.asia-southeast1.firebasedatabase.app';
 const ROOM=(location.hash.slice(1).match(/^[A-Za-z0-9]{24,64}$/)||[''])[0];
@@ -672,8 +677,9 @@ function openSet(){const ov=el('div','ov'),sh=el('div','sheet sset');sh.append(e
   const row=(t,on,f)=>{const r=el('div','srow');const b=btn('tg'+(on()?' on':''),on()?'オン':'オフ',()=>{f();b.classList.toggle('on',on());b.textContent=on()?'オン':'オフ';});r.append(el('span',null,t),b);sh.append(r);};
   row('YouTubeのボタンを出す',()=>ls('ytc')==='1',()=>{ls('ytc',ls('ytc')==='1'?0:1);if(!pip){try{P&&P.destroy();}catch(_){}P=null;make($('stage'));}paint();});
   if(window.documentPictureInPicture)row('自動小窓',()=>ls('apip')==='1',()=>{ls('apip',ls('apip')==='1'?0:1);});
-  if(navigator.audioSession){const r=el('div','srow'),ks=Object.keys(AS_T);const cur=()=>AS_T[ls('as')]?ls('as'):'auto';const b=btn('tg'+(cur()!=='auto'?' on':''),AS_T[cur()][0],()=>{const n=ks[(ks.indexOf(cur())+1)%ks.length];ls('as',n);asApply();b.textContent=AS_T[n][0];b.classList.toggle('on',n!=='auto');});
-    const lb=el('span');lb.append('音の出し方（ためす用）',el('small','sdesc','LINE通話しながら聞こえにくいとき、押して切りかえて、いちばん聞こえるものにしてください'));r.append(lb,b);sh.append(r);}
+  if(navigator.audioSession){const r=el('div','srow asrow'),lb=el('span');lb.append('音の出し方',el('small','sdesc','LINE通話しながら聞こえにくいとき、押して聞き比べて、いちばん聞こえるものにしてください'));
+    const g=el('div','asg');const cur=()=>AS_T[ls('as')]?ls('as'):'auto';const mark=()=>[...g.children].forEach(b=>{const on=b.dataset.k===cur();b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});
+    Object.keys(AS_T).forEach(k=>{const b=btn('asb',AS_T[k][0],()=>{ls('as',k);asApply();mark();});b.dataset.k=k;g.append(b);});mark();r.append(lb,g);sh.append(r);}
   const lv=btn('pk off','退出',()=>{ov.remove();leave();});
   const lg=btn('pk','動きの記録（調べる用）',()=>{const ov2=el('div','ov'),s2=el('div','sheet hsheet'),hd=el('div','fhd');hd.append(el('b',null,'動きの記録'),btn('ic','✕',()=>ov2.remove()));
     const pre=el('pre','logpre',logA.slice().reverse().join('\n')||'まだありません');const cp=btn('pk','コピー',()=>{(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(pre.textContent):Promise.reject()).then(()=>{cp.textContent='コピーしました';},()=>{});});
